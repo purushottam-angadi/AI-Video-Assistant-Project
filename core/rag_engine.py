@@ -24,13 +24,13 @@ def build_rag_chain(transcript:str):
         (
             "system",
             """You are an expert meeting assistant. Answer the user's question 
-        based ONLY on the meeting transcript context provided below.
+        based ONLY on the meeting transcript context provided below and answer in brief like in detail.
 
         If the answer is not found in the context, say: 
         "I could not find this information in the meeting transcript."
         
 
-        Always be concise and precise. If quoting someone, mention it clearly.
+
 
         Context from meeting transcript:
          {context}
@@ -58,7 +58,7 @@ def load_rag_chain():
         (
             "system",
             """You are an expert meeting assistant. Answer the user's question 
-        based ONLY on the meeting transcript context provided below.
+        based ONLY on the meeting transcript context provided below.and answer in brief.
 
         If the answer is not found in the context, say: 
         "I could not find this information in the meeting transcript."

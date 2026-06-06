@@ -102,7 +102,7 @@ from sarvamai import SarvamAI
 load_dotenv()
 
 SARVAM_PIECE_SECONDS = 25
-WHISPER_MODEL = os.getenv("WHISPER_MODEL", "small")
+WHISPER_MODEL = os.getenv("WHISPER_MODEL", "tiny")
 SARVAM_API_KEY = os.getenv("SARVAM_API_KEY")
 SARVAM_MODEL = os.getenv("SARVAM_STT_MODEL", "saaras:v3")
 DEVICE = os.getenv("WHISPER_DEVICE", "cpu")
@@ -126,6 +126,7 @@ def transcribe_audio_chunk_whisper(chunk_path: str) -> str:
         task="transcribe",
         beam_size=1,
         vad_filter=True,
+        chunk_length=20
     )
     print(f"Detected language: {info.language} (probability: {info.language_probability:.2f})")
     return " ".join([segment.text.strip() for segment in segments])
@@ -185,12 +186,30 @@ def transcribe_audio_chunk(chunk_path: str, language: str = "english") -> str:
     else:
         return transcribe_audio_chunk_whisper(chunk_path)
 
+# def transcribe_full(chunks: list, language: str = "english") -> str:
+#     parts = []
+#     engine = "Sarvam AI" if language.lower() == "hinglish" else "Faster-Whisper"
+#     print(f"Starting transcription using {engine}...")
+#     for i, chunk in enumerate(chunks):
+#         print(f"Processing chunk {i+1}/{len(chunks)}")
+#         parts.append(transcribe_audio_chunk(chunk, language=language))
+#     print("Transcription completed")
+#     return "\n".join(parts).strip()
+
 def transcribe_full(chunks: list, language: str = "english") -> str:
-    parts = []
     engine = "Sarvam AI" if language.lower() == "hinglish" else "Faster-Whisper"
     print(f"Starting transcription using {engine}...")
-    for i, chunk in enumerate(chunks):
+
+    def process_chunk(args):
+        i, chunk = args
         print(f"Processing chunk {i+1}/{len(chunks)}")
-        parts.append(transcribe_audio_chunk(chunk, language=language))
+        return i, transcribe_audio_chunk(chunk, language=language)
+
+    results = [None] * len(chunks)
+    # 🔥 CHANGE: parallelize chunk transcription
+    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+        for i, transcript in executor.map(process_chunk, enumerate(chunks)):
+            results[i] = transcript
+
     print("Transcription completed")
-    return "\n".join(parts).strip()
+    return "\n".join(t for t in results if t).strip()
