@@ -50,3 +50,4 @@ uvicorn>=0.29.0         # optional, for API serving if needed
 gunicorn>=22.0.0        # optional, production server
 accelerate>=0.30.0      # optional, for HF model acceleration
 faster-whisper
+sarvamai
