@@ -18,6 +18,4 @@ jobs:
         run: |
           git config --global user.email "purushottam@gmail.com"
           git config --global user.name "purushottam-angadi"
-          git remote rm space || true
-          git remote add space https://purushottamangadi21:${HF_TOKEN}@huggingface.co/spaces/purushottamangadi21/AI-Video-Assistant
-          git push space main --force
+          git push https://purushottamangadi21:${HF_TOKEN}@huggingface.co/spaces/purushottamangadi21/AI-Video-Assistant main --force
