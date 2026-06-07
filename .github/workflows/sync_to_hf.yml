@@ -16,7 +16,7 @@ jobs:
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          git config --global user.email "you@gmail.com"
+          git config --global user.email "purushottam@gmail.com"
           git config --global user.name "purushottam-angadi"
-          git remote add space https://purushottamangadi21:$HF_TOKEN@huggingface.co/spaces/purushottamangadi21/AI-Video-Assistant
+          git remote add space https://purushottamangadi21:${HF_TOKEN}@huggingface.co/spaces/purushottamangadi21/AI-Video-Assistant
           git push space main --force
