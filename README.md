@@ -1,8 +1,9 @@
-echo '---
+cat > README.md << 'EOF'
+---
 title: AI Video Assistant
-emoji: 🎥
 colorFrom: blue
 colorTo: purple
 sdk: docker
 pinned: false
----' > README.md
+---
+EOF
