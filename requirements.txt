@@ -1,53 +1,32 @@
-# ── Python Environment ───────────────────────────────────────────────
-# Python >= 3.10 recommended
-
-# ── Audio / Video acquisition ─────────────────────────────────────────
 yt-dlp>=2024.4.9
 pydub>=0.25.1
 ffmpeg-python>=0.2.0
 imageio-ffmpeg>=0.4.0
-
-# ── Speech-to-Text (local Whisper) ───────────────────────────────────
-openai-whisper>=20231117
+faster-whisper
 torch>=2.2.0
 torchaudio>=2.2.0
-
-# ── Translation (Hindi → English) ────────────────────────────────────
 deep-translator>=1.11.4
-
-# ── LLM Orchestration — LangChain LCEL + Mistral ─────────────────────
 langchain>=0.2.0
 langchain-core>=0.2.0
 langchain-community>=0.2.0
 langchain-mistralai>=0.1.0
+langchain-chroma>=0.1.0
+langchain-huggingface>=0.0.3
+langchain-text-splitters>=0.2.0
 mistralai>=0.4.0
-
-# ── RAG Pipeline ─────────────────────────────────────────────────────
 chromadb>=0.5.0
 sentence-transformers>=3.0.0
-langchain-huggingface>=0.0.3
 huggingface-hub>=0.23.0
 tiktoken>=0.7.0
-
-# ── Streamlit UI ─────────────────────────────────────────────────────
 streamlit>=1.35.0
 streamlit-extras>=0.4.0
 watchdog>=4.0.0
-
-# ── PDF & TXT Export ─────────────────────────────────────────────────
 reportlab>=4.2.0
 fpdf2>=2.7.9
-
-# ── Utilities ────────────────────────────────────────────────────────
 python-dotenv>=1.0.0
 numpy>=1.26.0
 tqdm>=4.66.0
 requests>=2.32.0
-
-# ── Deployment / Hugging Face Spaces Extras ──────────────────────────
-protobuf>=5.26.1        # avoids embedding/model errors
-uvicorn>=0.29.0         # optional, for API serving if needed
-gunicorn>=22.0.0        # optional, production server
-accelerate>=0.30.0      # optional, for HF model acceleration
-faster-whisper
+protobuf>=5.26.1
 sarvamai
+accelerate>=0.30.0
