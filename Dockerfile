@@ -9,6 +9,10 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 RUN useradd -m -u 1000 user
+
+RUN mkdir -p /app/downloads && chown -R user:user /app/downloads
+RUN mkdir -p /app/vector_db && chown -R user:user /app/vector_db
+
 USER user
 ENV PATH="/home/user/.local/bin:$PATH"
 
