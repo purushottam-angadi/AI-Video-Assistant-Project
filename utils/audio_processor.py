@@ -23,7 +23,7 @@ def download_audio_from_youtube(url: str) -> str:
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info_dict = ydl.extract_info(url, download=True)
-        audio_file = ydl.prepare_filename(info_dict).replace('.webm', '.wav').replace('.m4a', '.wav ').replace('.mp4', '.wav ')
+        audio_file = ydl.prepare_filename(info_dict).replace('.webm', '.wav').replace('.m4a', '.wav').replace('.mp4', '.wav')
         return audio_file
     
 
@@ -32,7 +32,9 @@ def download_audio_from_youtube(url: str) -> str:
 def convert_to_wav(input_path: str) -> str:
     audio = AudioSegment.from_file(input_path)
     audio = audio.set_channels(1).set_frame_rate(16000)
-    filename = os.path.splitext(input_path)[0] + '_converted.wav'
+    # ← Save converted file in DOWNLOAD_DIR instead of source location
+    base_name = os.path.splitext(os.path.basename(input_path))[0]
+    filename = os.path.join(DOWNLOAD_DIR, base_name + '_converted.wav')
     audio.export(filename, format='wav')
     return filename
 
