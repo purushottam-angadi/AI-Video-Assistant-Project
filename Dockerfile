@@ -1,3 +1,5 @@
+# 
+
 FROM python:3.10-slim
 
 WORKDIR /app
@@ -8,21 +10,13 @@ RUN apt-get update && apt-get install -y \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-RUN useradd -m -u 1000 user
+COPY requirements.txt ./
+RUN pip3 install --no-cache-dir -r requirements.txt
 
-RUN mkdir -p /app/downloads && chown -R user:user /app/downloads
-RUN mkdir -p /app/vector_db && chown -R user:user /app/vector_db
+COPY . .
 
-USER user
-ENV PATH="/home/user/.local/bin:$PATH"
+EXPOSE 8080
 
-COPY --chown=user requirements.txt ./
-COPY --chown=user . .
+HEALTHCHECK CMD curl --fail http://localhost:$PORT/_stcore/health || exit 1
 
-RUN pip3 install --user -r requirements.txt
-
-EXPOSE 7860
-
-HEALTHCHECK CMD curl --fail http://localhost:7860/_stcore/health
-
-ENTRYPOINT ["streamlit", "run", "app.py", "--server.port=7860", "--server.address=0.0.0.0"]
+ENTRYPOINT ["streamlit", "run", "app.py", "--server.port=$PORT", "--server.address=0.0.0.0"]
