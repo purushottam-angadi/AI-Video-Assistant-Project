@@ -126,7 +126,7 @@ def transcribe_audio_chunk_whisper(chunk_path: str) -> str:
         task="transcribe",
         beam_size=1,
         vad_filter=True,
-        chunk_length=20
+        chunk_length=30
     )
     print(f"Detected language: {info.language} (probability: {info.language_probability:.2f})")
     return " ".join([segment.text.strip() for segment in segments])
@@ -207,7 +207,7 @@ def transcribe_full(chunks: list, language: str = "english") -> str:
 
     results = [None] * len(chunks)
     # 🔥 CHANGE: parallelize chunk transcription
-    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
         for i, transcript in executor.map(process_chunk, enumerate(chunks)):
             results[i] = transcript
 
