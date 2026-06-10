@@ -8,7 +8,7 @@ load_dotenv()
 
 CHROMA_DIR="vector_db"
 COLLECTION_NAME="meeting_transcript"
-EMBEDDING_MODEL="sentence-transformers/all-MiniLM-L6-v2"
+EMBEDDING_MODEL="sentence-transformers/all-MiniLM-L3-v2"
 
 def get_embeddings():
     return HuggingFaceEmbeddings(

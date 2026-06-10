@@ -93,7 +93,7 @@
 
 
 from pydub import AudioSegment
-from faster_whisper import WhisperModel
+
 import os
 import concurrent.futures
 from dotenv import load_dotenv
@@ -114,10 +114,17 @@ _model = None
 def load_model():
     global _model
     if _model is None:
+        from faster_whisper import WhisperModel
         print(f"Loading Faster-Whisper model: {WHISPER_MODEL} on {DEVICE}...")
         _model = WhisperModel(WHISPER_MODEL, device=DEVICE, compute_type=COMPUTE_TYPE)
         print("Model loaded successfully.")
     return _model
+
+def unload_model():
+    global _model
+    _model = None
+    import gc
+    gc.collect()
 
 def transcribe_audio_chunk_whisper(chunk_path: str) -> str:
     model = load_model()
@@ -196,20 +203,37 @@ def transcribe_audio_chunk(chunk_path: str, language: str = "english") -> str:
 #     print("Transcription completed")
 #     return "\n".join(parts).strip()
 
+# main code:=
+# def transcribe_full(chunks: list, language: str = "english") -> str:
+#     engine = "Sarvam AI" if language.lower() == "hinglish" else "Faster-Whisper"
+#     print(f"Starting transcription using {engine}...")
+
+#     def process_chunk(args):
+#         i, chunk = args
+#         print(f"Processing chunk {i+1}/{len(chunks)}")
+#         return i, transcribe_audio_chunk(chunk, language=language)
+
+#     results = [None] * len(chunks)
+#     # 🔥 CHANGE: parallelize chunk transcription
+#     with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+#         for i, transcript in executor.map(process_chunk, enumerate(chunks)):
+#             results[i] = transcript
+
+#     print("Transcription completed")
+#     return "\n".join(t for t in results if t).strip()
+
+
+# after getting error on railway memory ran out
+# Replace transcribe_full with this sequential version
 def transcribe_full(chunks: list, language: str = "english") -> str:
     engine = "Sarvam AI" if language.lower() == "hinglish" else "Faster-Whisper"
     print(f"Starting transcription using {engine}...")
-
-    def process_chunk(args):
-        i, chunk = args
+    parts = []
+    for i, chunk in enumerate(chunks):
         print(f"Processing chunk {i+1}/{len(chunks)}")
-        return i, transcribe_audio_chunk(chunk, language=language)
-
-    results = [None] * len(chunks)
-    # 🔥 CHANGE: parallelize chunk transcription
-    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
-        for i, transcript in executor.map(process_chunk, enumerate(chunks)):
-            results[i] = transcript
-
+        parts.append(transcribe_audio_chunk(chunk, language=language))
+        # Delete chunk file immediately after transcription
+        if os.path.exists(chunk):
+            os.remove(chunk)
     print("Transcription completed")
-    return "\n".join(t for t in results if t).strip()
+    return "\n".join(parts).strip()

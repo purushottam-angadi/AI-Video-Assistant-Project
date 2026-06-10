@@ -34,7 +34,7 @@ def convert_to_wav(input_path: str) -> str:
     gc.collect()
     return filename
 
-def convert_to_chunks(wav_path: str, chunk_length_mins: int=2) -> list:
+def convert_to_chunks(wav_path: str, chunk_length_mins: int=3) -> list:
     audio = AudioSegment.from_wav(wav_path)
     chunk_length_ms = chunk_length_mins * 60 * 1000
     chunks = []
