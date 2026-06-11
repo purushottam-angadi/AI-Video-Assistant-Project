@@ -1,11 +1,7 @@
-yt-dlp>=2024.4.9
+yt-dlp>=2025.1.1
 pydub>=0.25.1
 ffmpeg-python>=0.2.0
-# imageio-ffmpeg>=0.4.0
-faster-whisper
-torch>=2.2.0
-torchaudio>=2.2.0
-deep-translator>=1.11.4
+groq
 langchain>=0.2.0
 langchain-core>=0.2.0
 langchain-community>=0.2.0
@@ -17,16 +13,10 @@ mistralai>=0.4.0
 chromadb>=0.5.0
 sentence-transformers>=3.0.0
 huggingface-hub>=0.23.0
-# tiktoken>=0.7.0
 streamlit>=1.35.0
-# streamlit-extras>=0.4.0
 watchdog>=4.0.0
-reportlab>=4.2.0
-fpdf2>=2.7.9
 python-dotenv>=1.0.0
 numpy>=1.26.0
 tqdm>=4.66.0
 requests>=2.32.0
-# protobuf>=5.26.1
 sarvamai
-accelerate>=0.30.0

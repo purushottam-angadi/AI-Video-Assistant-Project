@@ -1,5 +1,5 @@
 from utils.audio_processor import process_audio
-from core.transcriber import transcribe_full, unload_model
+from core.transcriber import transcribe_full
 from dotenv import load_dotenv
 load_dotenv()
 import gc,os
@@ -13,7 +13,6 @@ def run_pipeline(source:str, language:str ="english")-> dict:
     chunks=process_audio(source)
     transcript=transcribe_full(chunks, language=language)
 
-    unload_model()
     gc.collect()
     print(f"raw transcription (first 300 characters ) {transcript[:300]}")
 

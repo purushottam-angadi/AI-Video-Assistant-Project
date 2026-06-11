@@ -9,16 +9,16 @@ os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 def download_audio_from_youtube(url: str) -> str:
     output_path = os.path.join(DOWNLOAD_DIR, '%(title)s.%(ext)s')
     ydl_opts = {
-        'format': 'worstaudio/worst',  # lowest quality = smallest file
+        'format': 'bestaudio/best',  # lowest quality = smallest file
         'outtmpl': output_path,
-        'cookiefile': 'cookies.txt',
         'postprocessors': [{
             'key': 'FFmpegExtractAudio',
             'preferredcodec': 'wav',
             'preferredquality': '64',  # lowered from 192
         }],
-        "quiet": True,
+        'quiet': True,
     }
+   
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info_dict = ydl.extract_info(url, download=True)
         audio_file = ydl.prepare_filename(info_dict).replace('.webm', '.wav').replace('.m4a', '.wav').replace('.mp4', '.wav')
@@ -34,7 +34,7 @@ def convert_to_wav(input_path: str) -> str:
     gc.collect()
     return filename
 
-def convert_to_chunks(wav_path: str, chunk_length_mins: int=3) -> list:
+def convert_to_chunks(wav_path: str, chunk_length_mins: int=1) -> list:
     audio = AudioSegment.from_wav(wav_path)
     chunk_length_ms = chunk_length_mins * 60 * 1000
     chunks = []
