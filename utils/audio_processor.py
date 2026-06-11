@@ -17,7 +17,8 @@ def download_audio_from_youtube(url: str) -> str:
             'preferredquality': '64',  # lowered from 192
         }],
         'quiet': True,
-        'nocheckcertificate': True,   # same as --no-check-certificate
+        'nocheckcertificate': True,
+        'cookiefile': 'cookies.txt', # same as --no-check-certificate
 
     }
    
