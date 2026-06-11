@@ -3,7 +3,8 @@ import streamlit as st
 import os
 import tempfile
 from dotenv import load_dotenv
-
+import logging
+logging.getLogger("streamlit").setLevel(logging.ERROR)
 load_dotenv()
 
 st.set_page_config(

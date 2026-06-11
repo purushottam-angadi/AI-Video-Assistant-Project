@@ -7,24 +7,44 @@ from core.summarizer import summarize, generate_title
 from core.extractor import extract_action_items, extract_key_decisions, extract_questions
 from core.rag_engine import build_rag_chain, ask_question, load_rag_chain
 
-def run_pipeline(source:str, language:str ="english")-> dict:
-    print("starting AI Video Assistant")
+import psutil
+import os
 
-    chunks=process_audio(source)
-    transcript=transcribe_full(chunks, language=language)
+def log_memory(step: str):
+    process = psutil.Process(os.getpid())
+    mem_mb = process.memory_info().rss / 1024 / 1024
+    print(f"[MEMORY] {step}: {mem_mb:.1f} MB")
 
+def run_pipeline(source: str, language: str = "english") -> dict:
+    log_memory("start")
+    
+    chunks = process_audio(source)
+    log_memory("after audio processing")
+    
+    transcript = transcribe_full(chunks, language=language)
+    log_memory("after transcription")
+    
     gc.collect()
-    print(f"raw transcription (first 300 characters ) {transcript[:300]}")
-
-    title=generate_title(transcript)
-    summary= summarize(transcript)
+    
+    title = generate_title(transcript)
+    log_memory("after generate_title")
+    
+    summary = summarize(transcript)
+    log_memory("after summarize")
+    
     action_item = extract_action_items(transcript)
-
+    log_memory("after action_items")
+    
     decisions = extract_key_decisions(transcript)
+    log_memory("after decisions")
+    
     questions = extract_questions(transcript)
+    log_memory("after questions")
+    
     gc.collect()
-    rag_chain=build_rag_chain(transcript)
-
+    
+    rag_chain = build_rag_chain(transcript)
+    log_memory("after rag_chain built")
     
     return {
         "title": title,
