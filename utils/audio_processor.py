@@ -17,6 +17,8 @@ def download_audio_from_youtube(url: str) -> str:
             'preferredquality': '64',  # lowered from 192
         }],
         'quiet': True,
+        'nocheckcertificate': True,   # same as --no-check-certificate
+        'proxy': 'http://127.0.0.1:8080'
     }
    
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
