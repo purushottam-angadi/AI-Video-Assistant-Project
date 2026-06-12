@@ -54,4 +54,4 @@ EXPOSE 8080
 HEALTHCHECK CMD bash -c "curl --fail http://localhost:$PORT/_stcore/health || exit 1"
 
 # Use CMD so Railway can override if needed
-CMD streamlit run app.py --server.port=$PORT --server.address=0.0.0.0
+CMD streamlit run appui.py --server.port=$PORT --server.address=0.0.0.0
