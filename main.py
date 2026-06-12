@@ -1,8 +1,8 @@
-from utils.audio_processor import process_audio
+from utils.audio_processor import process_audio, is_youtube_url, get_youtube_transcript
 from core.transcriber import transcribe_full
 from dotenv import load_dotenv
 load_dotenv()
-import gc,os
+import gc, os
 from core.summarizer import summarize, generate_title
 from core.extractor import extract_action_items, extract_key_decisions, extract_questions
 from core.rag_engine import build_rag_chain, ask_question, load_rag_chain
@@ -16,36 +16,42 @@ def log_memory(step: str):
     print(f"[MEMORY] {step}: {mem_mb:.1f} MB")
 
 def run_pipeline(source: str, language: str = "english") -> dict:
+
     log_memory("start")
-    
-    chunks = process_audio(source)
-    log_memory("after audio processing")
-    
-    transcript = transcribe_full(chunks, language=language)
-    log_memory("after transcription")
-    
+
+    if is_youtube_url(source):
+        print("Fetching transcript via YouTube transcript API...")
+        transcript = get_youtube_transcript(source, language=language)
+        log_memory("after youtube transcript fetch")
+    else:
+        chunks = process_audio(source)
+        log_memory("after audio processing")
+
+        transcript = transcribe_full(chunks, language=language)
+        log_memory("after transcription")
+
     gc.collect()
-    
+
     title = generate_title(transcript)
     log_memory("after generate_title")
-    
+
     summary = summarize(transcript)
     log_memory("after summarize")
-    
+
     action_item = extract_action_items(transcript)
     log_memory("after action_items")
-    
+
     decisions = extract_key_decisions(transcript)
     log_memory("after decisions")
-    
+
     questions = extract_questions(transcript)
     log_memory("after questions")
-    
+
     gc.collect()
-    
+
     rag_chain = build_rag_chain(transcript)
     log_memory("after rag_chain built")
-    
+
     return {
         "title": title,
         "transcript": transcript,
@@ -58,7 +64,7 @@ def run_pipeline(source: str, language: str = "english") -> dict:
 
 
 if __name__ == "__main__":
-    source=input("Enter YouTube URL or local file path: ").strip().strip('"').strip("'")
+    source = input("Enter YouTube URL or local file path: ").strip().strip('"').strip("'")
     language = input("Language (english/hinglish): ").strip() or "english"
     result = run_pipeline(source, language)
 
@@ -85,9 +91,6 @@ if __name__ == "__main__":
         if not question:
             continue
 
-        # Format history into a string
-        
-
         # Ask question with history
         answer = ask_question(rag_chain, question, chat_history)
 
@@ -95,4 +98,3 @@ if __name__ == "__main__":
         chat_history += f"User: {question}\nAssistant: {answer}\n"
 
         print(f"\n🤖 Assistant: {answer}\n")
-
