@@ -1,807 +1,597 @@
-
 import streamlit as st
+import gc
 import os
 import tempfile
-from dotenv import load_dotenv
-import logging
-logging.getLogger("streamlit").setLevel(logging.ERROR)
-load_dotenv()
 
+# ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="VideoMind AI",
-    page_icon="🎙️",
+    page_title="VidMind · AI Video Assistant",
+    page_icon="🎬",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
 
+# ── CSS ───────────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500&family=Fira+Code:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;700&display=swap');
 
-html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
-.stApp { background: #080d1a; color: #e8edf5; }
+*, *::before, *::after { box-sizing: border-box; }
+html, body, .stApp {
+    background-color: #080D18 !important;
+    color: #DDE6F5 !important;
+    font-family: 'Inter', sans-serif;
+}
 #MainMenu, footer, header { visibility: hidden; }
-.block-container { padding-top: 0; padding-bottom: 2.5rem; max-width: 1100px; }
-
-/* ── Kill ghost boxes ── */
-[data-testid="stVerticalBlock"] > div {
-    border: none !important;
-    background: transparent !important;
-    box-shadow: none !important;
-    border-radius: 0 !important;
-}
-div[data-testid="stMarkdownContainer"] {
-    border: none !important;
-    background: transparent !important;
-    box-shadow: none !important;
-}
-.element-container {
-    border: none !important;
-    background: transparent !important;
-    box-shadow: none !important;
-}
-[data-testid="stHorizontalBlock"] > div {
-    border: none !important;
-    background: transparent !important;
-    box-shadow: none !important;
-}
-div[class*="stColumn"] > div {
-    border: none !important;
-    background: transparent !important;
-    box-shadow: none !important;
-}
-
-/* ── Top navbar ── */
-.vm-navbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 1.1rem 0 1rem;
-    border-bottom: 1px solid #14213d;
-    margin-bottom: 2.2rem;
-}
-.vm-navbar-brand {
-    font-family: 'Outfit', sans-serif;
-    font-weight: 800;
-    font-size: 1.1rem;
-    color: #e8edf5;
-    letter-spacing: -0.02em;
-}
-.vm-navbar-brand em { font-style: normal; color: #7c6af7; }
-.vm-navbar-status {
-    font-family: 'Fira Code', monospace;
-    font-size: 0.65rem;
-    color: #3a4560;
-    letter-spacing: 0.12em;
-}
-.vm-navbar-status span {
-    color: #7c6af7;
-    margin-right: 0.4rem;
-}
-
-/* ── Page nav pills ── */
-.vm-page-nav {
-    display: flex;
-    gap: 0.4rem;
-    margin-bottom: 2rem;
-    flex-wrap: wrap;
-}
-.vm-nav-pill {
-    font-family: 'Fira Code', monospace;
-    font-size: 0.68rem;
-    letter-spacing: 0.1em;
-    padding: 0.4rem 1rem;
-    border-radius: 4px;
-    cursor: pointer;
-    border: 1px solid #1e2d4a;
-    color: #3a4560;
-    background: transparent;
-    transition: all 0.15s;
-    text-decoration: none;
-}
-.vm-nav-pill:hover { border-color: #7c6af7; color: #a89ef9; }
-.vm-nav-pill.active {
-    background: rgba(124,106,247,0.12);
-    border-color: #7c6af7;
-    color: #a89ef9;
-}
+.block-container { padding: 1.5rem 2.5rem 5rem !important; max-width: 1080px; }
 
 /* ── Hero ── */
-.vm-hero {
-    position: relative;
-    padding: 4rem 0 3rem;
-    overflow: hidden;
+.hero {
+    text-align: center;
+    padding: 2.8rem 1rem 2rem;
 }
-.vm-hero::before {
-    content: '';
-    position: absolute;
-    top: -80px; right: -120px;
-    width: 600px; height: 600px;
-    background: radial-gradient(circle, rgba(124,106,247,0.07) 0%, transparent 60%);
-    pointer-events: none;
-}
-.vm-hero-eyebrow {
-    font-family: 'Fira Code', monospace;
-    font-size: 0.68rem;
-    color: #7c6af7;
-    letter-spacing: 0.2em;
+.hero-eyebrow {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
-    margin-bottom: 1rem;
-}
-.vm-hero-title {
-    font-family: 'Outfit', sans-serif;
-    font-size: clamp(2.8rem, 6vw, 4.2rem);
-    font-weight: 800;
-    color: #e8edf5;
-    line-height: 1.08;
-    margin: 0 0 1rem;
-    letter-spacing: -0.03em;
-}
-.vm-hero-title em { font-style: normal; color: #7c6af7; }
-.vm-hero-sub {
-    font-size: 0.92rem;
-    color: #4a5568;
-    max-width: 500px;
-    line-height: 1.7;
-    margin-bottom: 0;
-}
-
-/* ── Input panel ── */
-.vm-input-panel {
-    background: #0d1526;
-    border: 1px solid #14213d;
-    border-top: 2px solid #7c6af7;
-    border-radius: 8px;
-    padding: 1.6rem 1.8rem;
-    margin-bottom: 1.2rem;
-}
-
-/* ── Cards ── */
-.vm-card {
-    background: #0d1526;
-    border: 1px solid #14213d;
-    border-top: 2px solid #7c6af7;
-    border-radius: 8px;
-    padding: 2rem 2.2rem;
-    margin-bottom: 1.2rem;
-}
-.vm-card-sm {
-    background: #0a1020;
-    border: 1px solid #14213d;
-    border-radius: 6px;
-    padding: 1.2rem 1.4rem;
-    margin-bottom: 0.8rem;
-}
-.vm-label {
-    font-family: 'Fira Code', monospace;
-    font-size: 0.62rem;
-    font-weight: 500;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    color: #7c6af7;
-    margin-bottom: 0.9rem;
-}
-.vm-body {
-    font-size: 0.9rem;
-    color: #8892a4;
-    line-height: 1.85;
-    white-space: pre-wrap;
-}
-.vm-page-title {
-    font-family: 'Outfit', sans-serif;
-    font-size: 2rem;
-    font-weight: 700;
-    color: #e8edf5;
-    letter-spacing: -0.02em;
-    margin-bottom: 0.3rem;
-}
-.vm-page-subtitle {
-    font-size: 0.85rem;
-    color: #3a4560;
-    margin-bottom: 2rem;
-    font-family: 'Fira Code', monospace;
-    font-size: 0.7rem;
-    letter-spacing: 0.08em;
-}
-
-/* ── Video title banner ── */
-.vm-video-banner {
-    background: linear-gradient(135deg, #0d1526 0%, #0f1a30 100%);
-    border: 1px solid #14213d;
-    border-left: 3px solid #7c6af7;
-    border-radius: 8px;
-    padding: 1.2rem 1.6rem;
-    margin-bottom: 1.8rem;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-.vm-video-name {
-    font-family: 'Outfit', sans-serif;
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: #e8edf5;
-    letter-spacing: -0.01em;
-}
-.vm-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    background: rgba(124,106,247,0.1);
-    border: 1px solid rgba(124,106,247,0.2);
-    color: #a89ef9;
-    border-radius: 4px;
-    padding: 0.2rem 0.7rem;
-    font-family: 'Fira Code', monospace;
-    font-size: 0.62rem;
-    letter-spacing: 0.1em;
-    white-space: nowrap;
-}
-
-/* ── Summary home cards ── */
-.vm-nav-card {
-    background: #0d1526;
-    border: 1px solid #14213d;
-    border-radius: 8px;
-    padding: 1.5rem;
-    cursor: pointer;
-    transition: border-color 0.2s, transform 0.15s;
-    height: 100%;
-}
-.vm-nav-card:hover {
-    border-color: #7c6af7;
-    transform: translateY(-2px);
-}
-.vm-nav-card-icon {
-    font-size: 1.4rem;
-    margin-bottom: 0.7rem;
-}
-.vm-nav-card-title {
-    font-family: 'Outfit', sans-serif;
-    font-weight: 700;
-    font-size: 0.95rem;
-    color: #e8edf5;
+    color: #3B82F6;
     margin-bottom: 0.4rem;
 }
-.vm-nav-card-desc {
-    font-size: 0.75rem;
-    color: #3a4560;
-    line-height: 1.5;
+.hero-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 2.5rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #60A5FA 0%, #A5B4FC 55%, #38BDF8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.4px;
+    margin-bottom: 0.45rem;
 }
-
-/* ── Chat ── */
-.vm-chat {
-    background: #0a1020;
-    border: 1px solid #14213d;
-    border-radius: 8px;
-    padding: 1.4rem;
-    height: 460px;
-    overflow-y: auto;
-    margin-bottom: 0.8rem;
-    scrollbar-width: thin;
-    scrollbar-color: #1e2d4a transparent;
-}
-.vm-chat-empty {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    color: #1e2d4a;
-    font-family: 'Fira Code', monospace;
-    font-size: 0.72rem;
-    letter-spacing: 0.1em;
-}
-.vm-bubble-user {
-    display: flex;
-    justify-content: flex-end;
-    margin-bottom: 0.85rem;
-}
-.vm-bubble-user > div {
-    background: #7c6af7;
-    color: #ffffff;
-    border-radius: 10px 10px 2px 10px;
-    padding: 0.7rem 1.1rem;
-    max-width: 70%;
-    font-size: 0.85rem;
-    line-height: 1.55;
-}
-.vm-bubble-bot {
-    display: flex;
-    justify-content: flex-start;
-    margin-bottom: 0.85rem;
-}
-.vm-bubble-bot > div {
-    background: #0d1526;
-    color: #8892a4;
-    border-radius: 10px 10px 10px 2px;
-    padding: 0.7rem 1.1rem;
-    max-width: 76%;
-    font-size: 0.85rem;
+.hero-sub {
+    font-size: 1rem;
+    color: #6B84A8;
+    max-width: 500px;
+    margin: 0 auto;
     line-height: 1.65;
-    border: 1px solid #14213d;
 }
 
-/* ── Inputs ── */
-.stTextInput > div,
-.stTextInput > div > div {
-    border: none !important;
-    background: transparent !important;
-    box-shadow: none !important;
-    padding: 0 !important;
-    border-radius: 0 !important;
-}
-.stTextInput > div > div > input {
-    background: #0a1020 !important;
-    border: 1px solid #1e2d4a !important;
-    border-radius: 6px !important;
-    color: #e8edf5 !important;
-    font-family: 'Inter', sans-serif !important;
-    font-size: 0.875rem !important;
-    caret-color: #7c6af7 !important;
-    padding: 0.55rem 0.9rem !important;
-    box-shadow: none !important;
-}
-.stTextInput > div > div > input:focus {
-    border-color: #7c6af7 !important;
-    box-shadow: 0 0 0 2px rgba(124,106,247,0.15) !important;
-    background: #080d1a !important;
-    outline: none !important;
-}
-.stTextInput > div > div > input::placeholder { color: #2a3550 !important; }
-
-.stSelectbox > div {
-    border: none !important;
-    background: transparent !important;
-    box-shadow: none !important;
-    padding: 0 !important;
-}
-.stSelectbox > div > div {
-    background: #0a1020 !important;
-    border: 1px solid #1e2d4a !important;
-    border-radius: 6px !important;
-    color: #e8edf5 !important;
-    box-shadow: none !important;
-}
-.stSelectbox > div > div:focus-within {
-    border-color: #7c6af7 !important;
-    box-shadow: 0 0 0 2px rgba(124,106,247,0.15) !important;
+/* ── Divider ── */
+.divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #1B3558, transparent);
+    margin: 1.25rem 0;
 }
 
-/* ── Buttons ── */
-.stButton > button {
-    background: #7c6af7 !important;
-    color: #ffffff !important;
-    border: none !important;
-    border-radius: 6px !important;
-    font-family: 'Outfit', sans-serif !important;
-    font-weight: 600 !important;
-    font-size: 0.875rem !important;
-    padding: 0.55rem 1.4rem !important;
-    width: 100%;
-    transition: background 0.18s, transform 0.15s !important;
+/* ── Section anchor label ── */
+.section-anchor {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #3B82F6;
+    margin-bottom: 0.6rem;
+    display: block;
 }
-.stButton > button:hover {
-    background: #9585f9 !important;
-    transform: translateY(-1px) !important;
-}
-.stButton > button:disabled {
-    background: #1e2d4a !important;
-    color: #3a4560 !important;
-    transform: none !important;
-}
-
-/* ── Radio ── */
-.stRadio > div { flex-direction: row !important; gap: 0.5rem; }
-.stRadio > div > label {
-    background: #0d1526 !important;
-    border: 1px solid #1e2d4a !important;
-    border-radius: 6px !important;
-    padding: 0.35rem 1rem !important;
-    font-size: 0.8rem !important;
-    font-weight: 500 !important;
-    cursor: pointer !important;
-    color: #8892a4 !important;
-    transition: all 0.15s !important;
-}
-.stRadio > div > label:hover { border-color: #7c6af7 !important; color: #a89ef9 !important; }
 
 /* ── File uploader ── */
 [data-testid="stFileUploader"] {
-    background: #0a1020 !important;
-    border: 1px dashed #1e2d4a !important;
-    border-radius: 8px !important;
+    background: #0C1525 !important;
+    border: 2px dashed #1B3558 !important;
+    border-radius: 14px !important;
+    transition: border-color 0.2s !important;
+}
+[data-testid="stFileUploader"]:hover { border-color: #3B82F6 !important; }
+[data-testid="stFileUploader"] label { color: #6B84A8 !important; font-size: 0.93rem !important; }
+
+/* ── Selectbox ── */
+[data-testid="stSelectbox"] > div > div {
+    background: #0C1525 !important;
+    border: 1px solid #1B3558 !important;
+    border-radius: 10px !important;
+    color: #DDE6F5 !important;
 }
 
-/* ── Error ── */
-.vm-error {
-    background: rgba(239,68,68,0.06);
-    border: 1px solid rgba(239,68,68,0.18);
-    border-left: 3px solid #ef4444;
-    border-radius: 6px;
-    padding: 0.9rem 1.2rem;
-    margin-top: 1rem;
+/* ── Primary button ── */
+.stButton > button {
+    background: linear-gradient(135deg, #1D4ED8, #3B82F6) !important;
+    color: #fff !important;
+    border: none !important;
+    border-radius: 10px !important;
+    padding: 0.6rem 1.8rem !important;
+    font-family: 'Space Grotesk', sans-serif !important;
+    font-weight: 600 !important;
+    font-size: 0.93rem !important;
+    width: 100% !important;
+    box-shadow: 0 4px 16px #3B82F638 !important;
+    transition: all 0.18s ease !important;
+}
+.stButton > button:hover {
+    background: linear-gradient(135deg, #1E40AF, #2563EB) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 6px 22px #3B82F658 !important;
+}
+
+/* ── Nav pill bar ── */
+.nav-bar {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    background: #0C1525;
+    border: 1px solid #1B3558;
+    border-radius: 14px;
+    padding: 0.4rem 0.5rem;
+    margin-bottom: 1.75rem;
+}
+.nav-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: transparent;
+    color: #6B84A8;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.84rem;
+    font-weight: 500;
+    padding: 0.42rem 0.95rem;
+    border-radius: 9px;
+    text-decoration: none !important;
+    transition: all 0.15s;
+    cursor: pointer;
+    border: none;
+    white-space: nowrap;
+}
+.nav-pill:hover {
+    background: #152038;
+    color: #93C5FD;
+    text-decoration: none !important;
+}
+
+/* ── Result card ── */
+.result-card {
+    background: #0C1525;
+    border: 1px solid #1B3558;
+    border-radius: 14px;
+    padding: 1.4rem 1.65rem;
+    margin-bottom: 1.2rem;
+    scroll-margin-top: 80px;
+}
+.result-card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    margin-bottom: 0.85rem;
+    padding-bottom: 0.7rem;
+    border-bottom: 1px solid #152038;
+}
+.result-card-icon { font-size: 1.1rem; }
+.result-card-title {
+    font-family: 'Space Grotesk', sans-serif;
     font-size: 0.82rem;
-    color: #fca5a5;
-    font-family: 'Fira Code', monospace;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #60A5FA;
+}
+.result-card-body {
+    color: #B8CCEB;
+    font-size: 0.95rem;
+    line-height: 1.78;
+    white-space: pre-wrap;
 }
 
-/* ── Spinner ── */
-.stSpinner > div { border-top-color: #7c6af7 !important; }
+/* ── Video title badge ── */
+.title-badge {
+    background: linear-gradient(135deg, #0F2040, #0C1A30);
+    border: 1px solid #2563EB;
+    border-radius: 12px;
+    padding: 1rem 1.65rem;
+    margin-bottom: 1.4rem;
+}
+.title-badge-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #3B82F6;
+    margin-bottom: 0.3rem;
+}
+.title-badge-text {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #93C5FD;
+    line-height: 1.35;
+}
 
-/* ── Download ── */
-.stDownloadButton > button {
-    background: transparent !important;
-    color: #7c6af7 !important;
-    border: 1px solid #2a1f6a !important;
-    border-radius: 6px !important;
+/* ── Two-col grid ── */
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+@media (max-width: 700px) { .two-col { grid-template-columns: 1fr; } }
+
+/* ── Transcript box ── */
+.transcript-box {
+    background: #080D18;
+    border: 1px solid #152038;
+    border-radius: 10px;
+    padding: 1.1rem 1.3rem;
+    max-height: 320px;
+    overflow-y: auto;
+    font-size: 0.9rem;
+    color: #8FA5C8;
+    line-height: 1.75;
+    white-space: pre-wrap;
+    scrollbar-width: thin;
+    scrollbar-color: #1B3558 transparent;
+}
+
+/* ── Chat bubbles ── */
+.chat-scroll {
+    max-height: 420px;
+    overflow-y: auto;
+    padding-right: 0.4rem;
+    scrollbar-width: thin;
+    scrollbar-color: #1B3558 transparent;
+    margin-bottom: 1rem;
+}
+.bubble-user {
+    background: linear-gradient(135deg, #1D4ED815, #3B82F60D);
+    border: 1px solid #2563EB44;
+    border-radius: 14px 14px 4px 14px;
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.65rem;
+    color: #BFDBFE;
+    font-size: 0.93rem;
+    line-height: 1.55;
+    text-align: right;
+}
+.bubble-ai {
+    background: #0F1E33;
+    border: 1px solid #1B3558;
+    border-radius: 14px 14px 14px 4px;
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.65rem;
+    color: #CBD8EF;
+    font-size: 0.93rem;
+    line-height: 1.6;
+}
+.bubble-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    margin-bottom: 0.28rem;
+}
+.bubble-user .bubble-label { color: #3B82F6; }
+.bubble-ai .bubble-label { color: #60A5FA; }
+
+/* ── Chat input ── */
+[data-testid="stChatInput"] textarea {
+    background: #0C1525 !important;
+    color: #DDE6F5 !important;
+    border: 1px solid #1B3558 !important;
+    border-radius: 10px !important;
+    font-size: 0.93rem !important;
+}
+
+/* ── Download button ── */
+[data-testid="stDownloadButton"] button {
+    background: #0C1525 !important;
+    color: #60A5FA !important;
+    border: 1px solid #1B3558 !important;
+    border-radius: 9px !important;
+    font-size: 0.85rem !important;
     font-weight: 500 !important;
-    font-size: 0.8rem !important;
+    padding: 0.45rem 1rem !important;
     width: auto !important;
+    box-shadow: none !important;
 }
-.stDownloadButton > button:hover {
-    background: rgba(124,106,247,0.08) !important;
-    border-color: #7c6af7 !important;
+[data-testid="stDownloadButton"] button:hover {
+    border-color: #3B82F6 !important;
+    color: #93C5FD !important;
+    transform: none !important;
 }
 
-/* ── Sidebar ── */
-[data-testid="stSidebar"] {
-    background: #060b16 !important;
-    border-right: 1px solid #14213d !important;
+/* ── Step tracker ── */
+.step-row {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    font-size: 0.87rem;
+    color: #6B84A8;
+    padding: 0.28rem 0;
 }
+.step-dot-active {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: #3B82F6;
+    box-shadow: 0 0 7px #3B82F6;
+    flex-shrink: 0;
+}
+.step-dot-inactive {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: #1B3558;
+    flex-shrink: 0;
+}
+.step-active { color: #93C5FD; }
+
+/* ── File info pill ── */
+.file-pill {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.6rem 1rem;
+    background: #0C1525;
+    border: 1px solid #1B3558;
+    border-radius: 9px;
+    margin-bottom: 0.9rem;
+    font-size: 0.87rem;
+    color: #6B84A8;
+}
+.file-pill-name { color: #93C5FD; font-weight: 500; }
+.file-pill-size { margin-left: auto; }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #1B3558; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #2563EB; }
+
+/* ── Alert ── */
+[data-testid="stAlert"] { border-radius: 10px !important; }
 </style>
 """, unsafe_allow_html=True)
 
 
+# ── Helpers ───────────────────────────────────────────────────────────────────
+def result_card(anchor_id: str, icon: str, title: str, body: str):
+    st.markdown(f"""
+    <div class="result-card" id="{anchor_id}">
+        <div class="result-card-header">
+            <span class="result-card-icon">{icon}</span>
+            <span class="result-card-title">{title}</span>
+        </div>
+        <div class="result-card-body">{body}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+
+def chat_bubble(role: str, text: str):
+    if role == "user":
+        st.markdown(f'<div class="bubble-user"><div class="bubble-label">You</div>{text}</div>',
+                    unsafe_allow_html=True)
+    else:
+        st.markdown(f'<div class="bubble-ai"><div class="bubble-label">VidMind</div>{text}</div>',
+                    unsafe_allow_html=True)
+
+
 # ── Session state ─────────────────────────────────────────────────────────────
-def init_state():
-    defaults = {
-        "pipeline_result": None,
-        "chat_history": [],
-        "rag_chain": None,
-        "error": None,
-        "page": "home",       # home | summary | actions | decisions | questions | transcript | chat
-    }
-    for k, v in defaults.items():
-        if k not in st.session_state:
-            st.session_state[k] = v
-
-init_state()
-
-def go(page):
-    st.session_state.page = page
-    st.rerun()
+for k, v in {"pipeline_result": None, "chat_history_text": "",
+              "chat_messages": [], "processing": False}.items():
+    if k not in st.session_state:
+        st.session_state[k] = v
 
 
-# ── Navbar ────────────────────────────────────────────────────────────────────
-result = st.session_state.pipeline_result
-status = "● processed" if result else "○ no video loaded"
-
-st.markdown(f"""
-<div class="vm-navbar">
-    <div class="vm-navbar-brand">Video<em>Mind</em></div>
-    <div class="vm-navbar-status"><span>{'●' if result else '○'}</span>{status}</div>
+# ── Hero ──────────────────────────────────────────────────────────────────────
+st.markdown("""
+<div class="hero">
+    <div class="hero-eyebrow">AI Video Assistant</div>
+    <div class="hero-title">VidMind</div>
+    <div class="hero-sub">Drop in any video or audio. Walk away with deep insights.</div>
 </div>
+<div class="divider"></div>
 """, unsafe_allow_html=True)
 
 
-# ── Page nav (only shown after processing) ────────────────────────────────────
-if result:
-    pages = [
-        ("home",       "~/home"),
-        ("summary",    "summary"),
-        ("actions",    "actions"),
-        ("decisions",  "decisions"),
-        ("questions",  "questions"),
-        ("transcript", "transcript"),
-        ("chat",       "chat"),
-    ]
-    cols = st.columns(len(pages))
-    for col, (page_id, label) in zip(cols, pages):
-        with col:
-            is_active = st.session_state.page == page_id
-            btn_style = "primary" if is_active else "secondary"
-            if st.button(label, key=f"nav_{page_id}"):
-                go(page_id)
+# ── Upload row ────────────────────────────────────────────────────────────────
+col_up, col_lang = st.columns([3, 1], gap="large")
 
-    st.markdown('<hr style="border:none;border-top:1px solid #14213d;margin:0 0 1.8rem;">', unsafe_allow_html=True)
+with col_up:
+    st.markdown('<span class="section-anchor">Audio / Video File</span>', unsafe_allow_html=True)
+    uploaded_file = st.file_uploader(
+        "file",
+        type=["mp3", "mp4", "wav", "m4a", "flac", "webm", "mkv", "avi", "mov"],
+        label_visibility="collapsed",
+    )
 
-    # Video banner on every result page
+with col_lang:
+    st.markdown('<span class="section-anchor">Language</span>', unsafe_allow_html=True)
+    language = st.selectbox(
+        "lang",
+        options=["english", "hinglish"],
+        format_func=lambda x: "English" if x == "english" else "Hinglish",
+        label_visibility="collapsed",
+    )
+
+st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
+
+if uploaded_file:
     st.markdown(f"""
-    <div class="vm-video-banner">
-        <div class="vm-video-name">🎙️ {result.get('title', 'Untitled Video')}</div>
-        <span class="vm-badge">✓ processed</span>
+    <div class="file-pill">
+        <span>📎</span>
+        <span class="file-pill-name">{uploaded_file.name}</span>
+        <span class="file-pill-size">{uploaded_file.size / 1_000_000:.1f} MB</span>
     </div>
     """, unsafe_allow_html=True)
 
+    run_btn = st.button("⚡  Analyse", use_container_width=True)
 
-# ══════════════════════════════════════════════════════════════════════════════
-# PAGE: HOME (input / landing)
-# ══════════════════════════════════════════════════════════════════════════════
-if st.session_state.page == "home" and not result:
+    if run_btn and not st.session_state.processing:
+        st.session_state.processing = True
+        st.session_state.pipeline_result = None
+        st.session_state.chat_messages = []
+        st.session_state.chat_history_text = ""
 
-    st.markdown("""
-    <div class="vm-hero">
-        <div class="vm-hero-eyebrow">// transcribe · summarise · ask anything</div>
-        <h1 class="vm-hero-title">Video<em>Mind</em><br>AI Assistant</h1>
-        <p class="vm-hero-sub">
-            Drop a video or paste a YouTube link.
-            Get a full transcript, summary, action items — then talk to your content.
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
+        suffix = os.path.splitext(uploaded_file.name)[-1]
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+            tmp.write(uploaded_file.read())
+            tmp_path = tmp.name
 
-    col_l, col_r = st.columns([3, 2], gap="large")
+        try:
+            from utils.audio_processor import process_audio
+            from core.transcriber import transcribe_full
+            from core.summarizer import summarize, generate_title
+            from core.extractor import extract_action_items, extract_key_decisions, extract_questions
+            from core.rag_engine import build_rag_chain
 
-    with col_l:
-        st.markdown('<div class="vm-input-panel">', unsafe_allow_html=True)
-        st.markdown('<div class="vm-label">Source</div>', unsafe_allow_html=True)
-        input_mode = st.radio("", ["YouTube URL", "Upload File"],
-                              label_visibility="collapsed", horizontal=True)
-        source = None
+            status = st.empty()
+            steps = [
+                ("🎵", "Converting & chunking audio"),
+                ("🗣️", "Transcribing speech"),
+                ("📝", "Generating summary"),
+                ("✅", "Extracting action items"),
+                ("⚖️", "Identifying key decisions"),
+                ("❓", "Finding open questions"),
+                ("🔍", "Building Q&A index"),
+            ]
 
-        if input_mode == "YouTube URL":
-            st.markdown('<div style="height:0.4rem"></div>', unsafe_allow_html=True)
-            yt_url = st.text_input("", placeholder="https://www.youtube.com/watch?v=...",
-                                   label_visibility="collapsed")
-            source = yt_url.strip() if yt_url and yt_url.strip() else None
-        else:
-            uploaded = st.file_uploader(
-                "", type=["mp4", "mov", "avi", "mkv", "mp3", "wav", "m4a"],
-                label_visibility="collapsed"
-            )
-            if uploaded:
-                suffix = os.path.splitext(uploaded.name)[1]
-                with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-                    tmp.write(uploaded.read())
-                    source = tmp.name
-        st.markdown('</div>', unsafe_allow_html=True)
+            def show_step(active: int):
+                rows = ""
+                for i, (ic, lb) in enumerate(steps):
+                    dot = "step-dot-active" if i == active else "step-dot-inactive"
+                    cls = "step-active" if i == active else ""
+                    rows += f'<div class="step-row {cls}"><div class="{dot}"></div>{ic} {lb}{"…" if i == active else ""}</div>'
+                status.markdown(
+                    f'<div class="result-card" style="margin-bottom:0">'
+                    f'<div class="result-card-header"><span class="result-card-title">Processing</span></div>'
+                    f'{rows}</div>',
+                    unsafe_allow_html=True
+                )
 
-    with col_r:
-        st.markdown('<div class="vm-input-panel">', unsafe_allow_html=True)
-        st.markdown('<div class="vm-label">Language</div>', unsafe_allow_html=True)
-        language = st.selectbox("", ["english", "hinglish"], label_visibility="collapsed")
-        st.markdown('<div style="height:1rem"></div>', unsafe_allow_html=True)
-        st.markdown('<div class="vm-label">Run</div>', unsafe_allow_html=True)
-        run_btn = st.button("⚡  Process Video", disabled=not source)
-        st.markdown('</div>', unsafe_allow_html=True)
+            show_step(0); chunks = process_audio(tmp_path)
+            show_step(1); transcript = transcribe_full(chunks, language=language); gc.collect()
+            show_step(2); title = generate_title(transcript); summary = summarize(transcript)
+            show_step(3); action_items = extract_action_items(transcript)
+            show_step(4); decisions = extract_key_decisions(transcript)
+            show_step(5); questions = extract_questions(transcript)
+            show_step(6); rag_chain = build_rag_chain(transcript); gc.collect()
 
-    if st.session_state.error:
-        st.markdown(f'<div class="vm-error">// error<br>{st.session_state.error}</div>',
-                    unsafe_allow_html=True)
+            status.empty()
 
-    if run_btn and source:
-        st.session_state.error = None
-        with st.spinner("Transcribing and analysing — hang tight..."):
-            try:
-                from main import run_pipeline
-                result = run_pipeline(source, language=language)
-                st.session_state.pipeline_result = result
-                st.session_state.rag_chain = result.get("rag_chain")
-                st.session_state.chat_history = []
-                st.session_state.page = "home"
-                if input_mode == "Upload File" and source and os.path.exists(source):
-                    try: os.unlink(source)
-                    except: pass
-                st.rerun()
-            except Exception as e:
-                st.session_state.error = str(e)
-                st.rerun()
+            st.session_state.pipeline_result = {
+                "title": title, "transcript": transcript, "summary": summary,
+                "action_items": action_items, "key_decisions": decisions,
+                "open_questions": questions, "rag_chain": rag_chain,
+            }
 
+        except Exception as e:
+            st.error(f"**Processing failed:** {e}")
+        finally:
+            st.session_state.processing = False
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
 
-# ══════════════════════════════════════════════════════════════════════════════
-# PAGE: HOME (after processing — show nav cards)
-# ══════════════════════════════════════════════════════════════════════════════
-elif st.session_state.page == "home" and result:
-
-    st.markdown("""
-    <div class="vm-page-title">Overview</div>
-    <div class="vm-page-subtitle">// select a section to explore</div>
-    """, unsafe_allow_html=True)
-
-    nav_items = [
-        ("summary",    "📋", "Summary",     "A concise overview of the entire video content."),
-        ("actions",    "✅", "Action Items", "Tasks and follow-ups extracted from the video."),
-        ("decisions",  "🔑", "Key Decisions","Important decisions and conclusions identified."),
-        ("questions",  "❓", "Open Questions","Unresolved questions raised during the video."),
-        ("transcript", "📝", "Transcript",   "Full verbatim transcript with download option."),
-        ("chat",       "💬", "Chat",         "Ask anything about the video using RAG."),
-    ]
-
-    row1 = st.columns(3, gap="medium")
-    row2 = st.columns(3, gap="medium")
-
-    for i, (page_id, icon, title, desc) in enumerate(nav_items):
-        col = row1[i] if i < 3 else row2[i - 3]
-        with col:
-            st.markdown(f"""
-            <div class="vm-nav-card">
-                <div class="vm-nav-card-icon">{icon}</div>
-                <div class="vm-nav-card-title">{title}</div>
-                <div class="vm-nav-card-desc">{desc}</div>
-            </div>
-            """, unsafe_allow_html=True)
-            if st.button(f"Open {title}", key=f"card_{page_id}"):
-                go(page_id)
-
-    st.markdown('<div style="height:1rem"></div>', unsafe_allow_html=True)
-    if st.button("↩  Process a new video"):
-        for k in ["pipeline_result", "chat_history", "rag_chain", "error"]:
-            st.session_state[k] = [] if k == "chat_history" else None
-        st.session_state.page = "home"
         st.rerun()
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# PAGE: SUMMARY
-# ══════════════════════════════════════════════════════════════════════════════
-elif st.session_state.page == "summary":
-    st.markdown("""
-    <div class="vm-page-title">Summary</div>
-    <div class="vm-page-subtitle">// ai-generated overview of the video content</div>
-    """, unsafe_allow_html=True)
+# ── Results ───────────────────────────────────────────────────────────────────
+result = st.session_state.pipeline_result
 
+if result:
+    st.markdown("<div class='divider'></div>", unsafe_allow_html=True)
+
+    # Title badge
     st.markdown(f"""
-    <div class="vm-card">
-        <div class="vm-label">Overview</div>
-        <div class="vm-body">{result.get('summary', 'No summary available.')}</div>
+    <div class="title-badge">
+        <div class="title-badge-label">Detected Title</div>
+        <div class="title-badge-text">📌 {result['title']}</div>
     </div>
     """, unsafe_allow_html=True)
 
-    if st.button("→ View Action Items"):
-        go("actions")
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# PAGE: ACTIONS
-# ══════════════════════════════════════════════════════════════════════════════
-elif st.session_state.page == "actions":
+    # ── Nav pill bar (anchor links) ───────────────────────────────────────────
     st.markdown("""
-    <div class="vm-page-title">Action Items</div>
-    <div class="vm-page-subtitle">// tasks and follow-ups extracted from the video</div>
-    """, unsafe_allow_html=True)
-
-    st.markdown(f"""
-    <div class="vm-card">
-        <div class="vm-label">Tasks</div>
-        <div class="vm-body">{result.get('action_items', 'No action items found.')}</div>
+    <div class="nav-bar">
+        <a class="nav-pill" href="#sec-summary">🧠 Summary</a>
+        <a class="nav-pill" href="#sec-actions">✅ Action Items</a>
+        <a class="nav-pill" href="#sec-decisions">⚖️ Key Decisions</a>
+        <a class="nav-pill" href="#sec-questions">❓ Open Questions</a>
+        <a class="nav-pill" href="#sec-transcript">📄 Transcript</a>
+        <a class="nav-pill" href="#sec-chat">💬 Chat</a>
     </div>
     """, unsafe_allow_html=True)
 
-    if st.button("→ View Key Decisions"):
-        go("decisions")
+    # ── Summary ───────────────────────────────────────────────────────────────
+    result_card("sec-summary", "🧠", "Summary", result["summary"])
 
+    # ── Action Items + Key Decisions (side by side) ───────────────────────────
+    col_a, col_b = st.columns(2, gap="medium")
+    with col_a:
+        result_card("sec-actions", "✅", "Action Items", result["action_items"])
+    with col_b:
+        result_card("sec-decisions", "⚖️", "Key Decisions", result["key_decisions"])
 
-# ══════════════════════════════════════════════════════════════════════════════
-# PAGE: DECISIONS
-# ══════════════════════════════════════════════════════════════════════════════
-elif st.session_state.page == "decisions":
+    # ── Open Questions ────────────────────────────────────────────────────────
+    result_card("sec-questions", "❓", "Open Questions", result["open_questions"])
+
+    # ── Transcript ────────────────────────────────────────────────────────────
     st.markdown("""
-    <div class="vm-page-title">Key Decisions</div>
-    <div class="vm-page-subtitle">// important conclusions identified in the video</div>
+    <div class="result-card" id="sec-transcript">
+        <div class="result-card-header">
+            <span class="result-card-icon">📄</span>
+            <span class="result-card-title">Full Transcript</span>
+        </div>
     """, unsafe_allow_html=True)
+    st.markdown(f'<div class="transcript-box">{result["transcript"]}</div>', unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
 
-    st.markdown(f"""
-    <div class="vm-card">
-        <div class="vm-label">Decisions</div>
-        <div class="vm-body">{result.get('key_decisions', 'No key decisions found.')}</div>
-    </div>
-    """, unsafe_allow_html=True)
+    st.download_button(
+        label="⬇  Download transcript (.txt)",
+        data=result["transcript"],
+        file_name="transcript.txt",
+        mime="text/plain",
+    )
 
-    if st.button("→ View Open Questions"):
-        go("questions")
+    st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
 
-
-# ══════════════════════════════════════════════════════════════════════════════
-# PAGE: QUESTIONS
-# ══════════════════════════════════════════════════════════════════════════════
-elif st.session_state.page == "questions":
+    # ── Chat ──────────────────────────────────────────────────────────────────
     st.markdown("""
-    <div class="vm-page-title">Open Questions</div>
-    <div class="vm-page-subtitle">// unresolved questions raised in the video</div>
+    <div class="result-card" id="sec-chat">
+        <div class="result-card-header">
+            <span class="result-card-icon">💬</span>
+            <span class="result-card-title">Ask Anything</span>
+        </div>
     """, unsafe_allow_html=True)
 
-    st.markdown(f"""
-    <div class="vm-card">
-        <div class="vm-label">Questions</div>
-        <div class="vm-body">{result.get('open_questions', 'No open questions found.')}</div>
-    </div>
-    """, unsafe_allow_html=True)
+    if st.session_state.chat_messages:
+        st.markdown('<div class="chat-scroll">', unsafe_allow_html=True)
+        for msg in st.session_state.chat_messages:
+            chat_bubble(msg["role"], msg["content"])
+        st.markdown('</div>', unsafe_allow_html=True)
+    else:
+        st.markdown("""
+        <div style="text-align:center;padding:1.5rem 1rem;color:#364D6B;font-size:0.88rem;">
+            Ask anything about the content — themes, quotes, takeaways, timelines…
+        </div>""", unsafe_allow_html=True)
 
-    if st.button("→ View Full Transcript"):
-        go("transcript")
+    st.markdown("</div>", unsafe_allow_html=True)
 
+    user_q = st.chat_input("Ask about this video or audio…")
+    if user_q:
+        from core.rag_engine import ask_question
+        st.session_state.chat_messages.append({"role": "user", "content": user_q})
+        with st.spinner("Thinking…"):
+            ans = ask_question(result["rag_chain"], user_q, st.session_state.chat_history_text)
+        st.session_state.chat_messages.append({"role": "assistant", "content": ans})
+        st.session_state.chat_history_text += f"User: {user_q}\nAssistant: {ans}\n"
+        st.rerun()
 
-# ══════════════════════════════════════════════════════════════════════════════
-# PAGE: TRANSCRIPT
-# ══════════════════════════════════════════════════════════════════════════════
-elif st.session_state.page == "transcript":
+    if st.session_state.chat_messages:
+        c1, c2, c3 = st.columns([1, 1, 3])
+        with c1:
+            if st.button("🗑  Clear chat"):
+                st.session_state.chat_messages = []
+                st.session_state.chat_history_text = ""
+                st.rerun()
+
+elif not uploaded_file:
     st.markdown("""
-    <div class="vm-page-title">Transcript</div>
-    <div class="vm-page-subtitle">// full verbatim transcription</div>
-    """, unsafe_allow_html=True)
-
-    transcript_text = result.get('transcript', '')
-
-    col_dl, col_spacer = st.columns([1, 4])
-    with col_dl:
-        st.download_button(
-            "↓ download transcript",
-            data=transcript_text,
-            file_name="transcript.txt",
-            mime="text/plain"
-        )
-
-    st.markdown(f"""
-    <div class="vm-card" style="max-height:560px;overflow-y:auto;">
-        <div class="vm-label">Full Text</div>
-        <div class="vm-body" style="font-family:'Fira Code',monospace;
-             font-size:0.78rem;color:#5a6478;line-height:1.9;">
-            {transcript_text}
+    <div style="text-align:center;padding:3.5rem 1rem 2rem;color:#2A3D5A;">
+        <div style="font-size:2.5rem;margin-bottom:0.7rem;opacity:0.45;">🎬</div>
+        <div style="font-size:0.92rem;color:#3D5578;line-height:1.75;">
+            Upload a file above to get started.<br>
+            <span style="font-size:0.82rem;color:#283C55;">MP3 · MP4 · WAV · M4A · FLAC · WEBM · MKV · AVI · MOV</span>
         </div>
     </div>
     """, unsafe_allow_html=True)
-
-    if st.button("→ Chat with this video"):
-        go("chat")
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# PAGE: CHAT
-# ══════════════════════════════════════════════════════════════════════════════
-elif st.session_state.page == "chat":
-    st.markdown("""
-    <div class="vm-page-title">Chat</div>
-    <div class="vm-page-subtitle">// ask anything about the video — powered by RAG</div>
-    """, unsafe_allow_html=True)
-
-    # Chat history display
-    if not st.session_state.chat_history:
-        chat_html = """
-        <div class="vm-chat-empty">
-            <div>// no messages yet</div>
-            <div style="font-size:0.6rem;margin-top:0.3rem;color:#14213d;">ask anything about the video below</div>
-        </div>"""
-    else:
-        chat_html = ""
-        for msg in st.session_state.chat_history:
-            if msg["role"] == "user":
-                chat_html += f'<div class="vm-bubble-user"><div>{msg["content"]}</div></div>'
-            else:
-                chat_html += f'<div class="vm-bubble-bot"><div>{msg["content"]}</div></div>'
-
-    st.markdown(f'<div class="vm-chat">{chat_html}</div>', unsafe_allow_html=True)
-
-    q_col, btn_col = st.columns([5, 1], gap="small")
-    with q_col:
-        user_q = st.text_input("", placeholder="What were the main decisions made?",
-                               key="chat_input", label_visibility="collapsed")
-    with btn_col:
-        ask_btn = st.button("Ask →", key="ask_btn")
-
-    if ask_btn and user_q.strip():
-        question = user_q.strip()
-        st.session_state.chat_history.append({"role": "user", "content": question})
-
-        history_str = ""
-        for msg in st.session_state.chat_history[:-1]:
-            prefix = "User" if msg["role"] == "user" else "Assistant"
-            history_str += f"{prefix}: {msg['content']}\n"
-
-        with st.spinner("thinking..."):
-            try:
-                from core.rag_engine import ask_question
-                answer = ask_question(st.session_state.rag_chain, question, history_str)
-            except Exception as e:
-                answer = f"// error: {str(e)}"
-
-        st.session_state.chat_history.append({"role": "assistant", "content": answer})
-        st.rerun()
-
-    if st.session_state.chat_history:
-        col_clr, col_sp = st.columns([1, 5])
-        with col_clr:
-            if st.button("✕ clear"):
-                st.session_state.chat_history = []
-                st.rerun()
