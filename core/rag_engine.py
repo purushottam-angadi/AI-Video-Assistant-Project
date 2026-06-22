@@ -279,7 +279,15 @@ def generate_node(state:State)->State:
            "question": state["question"],
            "chat_history": state["chat_history"]
     })
-    return {"answer": answer.content}
+    verdict = state.get("verdict", "CORRECT")
+    if verdict == "INCORRECT":
+        source_tag = "🌐 [Web search triggered — answer from live web results]\n"
+    elif verdict == "AMBIGUOUS":
+        source_tag = "📎 [Answer from transcript + web search combined]\n"
+    else:
+        source_tag = "🎬 [Answer from video transcript]\n"
+
+    return {"answer": source_tag + answer.content}
 
 #routing 
 
