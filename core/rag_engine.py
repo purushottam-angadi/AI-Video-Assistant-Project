@@ -232,6 +232,7 @@ def refine_node(state:State)->State:
         kept_strips = filter_chain.invoke({"question": q, "sentences": numbered}).relevant_sentences
     else:
         kept_strips = []
+
     refined_context= "\n".join(kept_strips)
     
 
@@ -253,8 +254,7 @@ answer_prompt = ChatPromptTemplate.from_messages([
         based ONLY on the context provided below (which may come from the video transcript or web search) 
         and answer in brief but with detail.
 
-        If the answer is not found in the context, say: 
-        "I could not find this information."
+        If the answer is not directly found, infer from related context and provide a reasoned answer.
 
         Context:
         {context}
@@ -269,9 +269,14 @@ rag_chain= answer_prompt | get_llm()
 
 
 def generate_node(state:State)->State:
-    answer= rag_chain.invoke({"context": state["refined_context"],
-           "question": state["question"],
-           "chat_history": state["chat_history"]
+    refined_context = state["refined_context"]
+    if not refined_context.strip():
+        refined_context = "\n".join(d.page_content for d in state.get("good_docs", []) + state.get("web_docs", []))
+    
+    answer = rag_chain.invoke({
+        "context": refined_context,
+        "question": state["question"],
+        "chat_history": state["chat_history"]
     })
     verdict = state.get("verdict", "CORRECT")
     if verdict == "INCORRECT":
