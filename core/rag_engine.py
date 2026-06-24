@@ -32,13 +32,6 @@ def get_pipeline_retriever():
     vector_store = load_vector_store()
     return get_retriever(vector_store)
 
-try:
-    vector_store = load_vector_store()
-    retriever = get_retriever(vector_store)
-except FileNotFoundError:
-    retriever = None   # or raise a clearer error
-
-
 class State(TypedDict):
     question : str
     chat_history : str
@@ -54,9 +47,10 @@ class State(TypedDict):
     answer: str
 
 def retrieve_node(state: State)-> State:
-    q=state['question']
-    return {"docs": retriever.invoke(q)}
-
+    q = state['question']
+    vector_store = load_vector_store()        # always fresh
+    fresh_retriever = get_retriever(vector_store)
+    return {"docs": fresh_retriever.invoke(q)}
 
 #Score-based evaluator
 class DocScore(BaseModel):
@@ -214,7 +208,7 @@ def refine_node(state:State)->State:
 
     context= "\n\n".join(d.page_content for d in docs_to_use).strip()
     print("CONTEXT LENGTH:", len(context))
-
+    
 
     strips= decompose_to_sentences(context)
     

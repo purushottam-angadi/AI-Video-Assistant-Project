@@ -66,6 +66,8 @@ def convert_to_wav(input_path: str) -> str:
 
 def convert_to_chunks(wav_path: str, chunk_length_mins: int = 1) -> list:
     audio = AudioSegment.from_wav(wav_path)
+    if len(audio) == 0:
+     raise ValueError(f"Audio file is empty: {wav_path}")
     chunk_length_ms = chunk_length_mins * 60 * 1000
     chunks = []
     for i, start in enumerate(range(0, len(audio), chunk_length_ms)):

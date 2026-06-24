@@ -41,6 +41,7 @@ def split_transcript(transcript: str) -> list[Document]:
         for chunk in chunks
     ]
 
+
 def build_vector_store(transcript: str) -> Chroma:
     """
     Embeds transcript chunks and persists them into a local Chroma vector store.
@@ -60,6 +61,26 @@ def build_vector_store(transcript: str) -> Chroma:
     print(f"✅ Vector store built at '{CHROMA_DIR}', collection: '{COLLECTION_NAME}'")
     print(f"   Chunks indexed: {len(docs)}")
     return vectorstore
+
+
+def load_vector_store() -> Chroma:
+    """
+    Loads an existing Chroma vector store from disk.
+    Raises if the persist directory doesn't exist yet (call build_vector_store first).
+    """
+    if not os.path.exists(CHROMA_DIR):
+        raise FileNotFoundError(
+            f"Vector store not found at '{CHROMA_DIR}'. "
+            "Run build_vector_store() first."
+        )
+
+    embeddings = get_embeddings()
+    return Chroma(
+        collection_name=COLLECTION_NAME,
+        embedding_function=embeddings,
+        persist_directory=CHROMA_DIR,
+    )
+
 
 def get_retriever(vector_store: Chroma, k: int = 4):
     """
