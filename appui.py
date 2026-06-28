@@ -19,12 +19,12 @@ st.set_page_config(
 # ─────────────────────────────────────────────
 def clean_llm_text(text: str) -> str:
     """Strip markdown symbols so output renders as clean plain text."""
-    text = re.sub(r"#{1,6}\s*", "", text)                      # ## headers
-    text = re.sub(r"\*\*(.*?)\*\*", r"\1", text)               # **bold**
-    text = re.sub(r"\*(.*?)\*", r"\1", text)                   # *italic*
-    text = re.sub(r"`{1,3}(.*?)`{1,3}", r"\1", text, flags=re.DOTALL)  # `code`
-    text = re.sub(r"^[-•*]\s+", "• ", text, flags=re.MULTILINE)        # bullets
-    text = re.sub(r"\n{3,}", "\n\n", text)                     # excess newlines
+    text = re.sub(r"#{1,6}\s*", "", text)
+    text = re.sub(r"\*\*(.*?)\*\*", r"\1", text)
+    text = re.sub(r"\*(.*?)\*", r"\1", text)
+    text = re.sub(r"`{1,3}(.*?)`{1,3}", r"\1", text, flags=re.DOTALL)
+    text = re.sub(r"^[-•*]\s+", "• ", text, flags=re.MULTILINE)
+    text = re.sub(r"\n{3,}", "\n\n", text)
     return text.strip()
 
 
@@ -150,11 +150,7 @@ html, body, [class*="css"] {
     gap: 0.9rem;
 }
 
-/* user bubble */
-.bubble-row-user {
-    display: flex;
-    justify-content: flex-end;
-}
+.bubble-row-user { display: flex; justify-content: flex-end; }
 .bubble-user {
     background: linear-gradient(135deg, #2A2060, #1E2A50);
     border: 1px solid #3B3275;
@@ -167,13 +163,7 @@ html, body, [class*="css"] {
     word-wrap: break-word;
 }
 
-/* bot bubble */
-.bubble-row-bot {
-    display: flex;
-    justify-content: flex-start;
-    flex-direction: column;
-    gap: 0.3rem;
-}
+.bubble-row-bot { display: flex; justify-content: flex-start; flex-direction: column; gap: 0.3rem; }
 .source-badge {
     font-size: 0.68rem;
     font-weight: 600;
@@ -184,9 +174,6 @@ html, body, [class*="css"] {
     margin-left: 0.3rem;
 }
 .src-transcript { background: #1A1A3A; color: #7B7FFF; border: 1px solid #2E2A60; }
-.src-web        { background: #0F2A1A; color: #34D399; border: 1px solid #1A4A2A; }
-.src-mixed      { background: #2A1A1A; color: #F59E0B; border: 1px solid #4A2A1A; }
-
 .bubble-bot {
     background: #13161F;
     border: 1px solid #1E2230;
@@ -199,9 +186,6 @@ html, body, [class*="css"] {
     word-wrap: break-word;
     white-space: pre-wrap;
 }
-
-/* ── Chat input row ── */
-.chat-input-row { display: flex; gap: 0.6rem; align-items: flex-end; }
 
 /* ── Streamlit overrides ── */
 .stTextInput > div > div > input,
@@ -240,30 +224,6 @@ html, body, [class*="css"] {
     color: #E2E4EA !important;
 }
 
-/* Tabs */
-.stTabs [data-baseweb="tab-list"] {
-    gap: 0.25rem;
-    background: transparent !important;
-    border-bottom: 1px solid #1E2230;
-    margin-bottom: 1.1rem;
-}
-.stTabs [data-baseweb="tab"] {
-    background: transparent !important;
-    border: none !important;
-    color: #3D4255 !important;
-    font-family: 'Space Grotesk', sans-serif !important;
-    font-size: 0.78rem !important;
-    font-weight: 600 !important;
-    letter-spacing: 0.08em !important;
-    text-transform: uppercase !important;
-    padding: 0.45rem 1.1rem !important;
-}
-.stTabs [aria-selected="true"] {
-    color: #A855F7 !important;
-    border-bottom: 2px solid #A855F7 !important;
-}
-
-/* File uploader */
 [data-testid="stFileUploader"] {
     background: #0D0F14 !important;
     border: 1.5px dashed #252838 !important;
@@ -285,10 +245,8 @@ html, body, [class*="css"] {
 }
 .file-chip .fname { color: #818CF8; font-weight: 600; }
 
-/* Spinner */
 .stSpinner > div { color: #7B7FFF !important; }
 
-/* Expander */
 .streamlit-expanderHeader {
     background: #13161F !important;
     border: 1px solid #1E2230 !important;
@@ -297,7 +255,6 @@ html, body, [class*="css"] {
     font-size: 0.85rem !important;
 }
 
-/* Empty chat placeholder */
 .chat-empty {
     text-align: center;
     color: #2D3147;
@@ -334,68 +291,49 @@ st.markdown("""
 
 
 # ─────────────────────────────────────────────
-# Input card
+# Input card — File upload only
 # ─────────────────────────────────────────────
 ALLOWED_EXT = ["mp4","mkv","mov","avi","webm","flv","mp3","wav","m4a","ogg","flac","aac"]
-
-st.markdown('<div class="input-card">', unsafe_allow_html=True)
-st.markdown('<div class="section-label">Source</div>', unsafe_allow_html=True)
-
-tab_yt, tab_file = st.tabs(["🔗  YouTube URL", "📁  Upload File"])
 
 source        = ""
 uploaded_path = None
 language      = "english"
 
-with tab_yt:
-    c1, c2, c3 = st.columns([4, 1, 1], gap="medium")
-    with c1:
-        yt_url = st.text_input("yt", label_visibility="collapsed",
-                               placeholder="https://www.youtube.com/watch?v=…",
-                               key="yt_url_input")
-    with c2:
-        lang_yt = st.selectbox("lang", ["english","hinglish"],
-                               key="lang_yt", label_visibility="collapsed")
-    with c3:
-        st.markdown("<br>", unsafe_allow_html=True)
-        run_yt = st.button("Analyse →", key="run_yt", use_container_width=True)
-    if run_yt:
-        source   = yt_url.strip()
-        language = lang_yt
+st.markdown('<div class="input-card">', unsafe_allow_html=True)
+st.markdown('<div class="section-label">Upload File</div>', unsafe_allow_html=True)
 
-with tab_file:
-    c1, c2, c3 = st.columns([4, 1, 1], gap="medium")
-    with c1:
-        uploaded = st.file_uploader(
-            "upload", label_visibility="collapsed",
-            type=ALLOWED_EXT,
-            help="Video: MP4 MKV MOV AVI WebM FLV  ·  Audio: MP3 WAV M4A OGG FLAC AAC",
-            key="file_upload",
+c1, c2, c3 = st.columns([4, 1, 1], gap="medium")
+with c1:
+    uploaded = st.file_uploader(
+        "upload", label_visibility="collapsed",
+        type=ALLOWED_EXT,
+        help="Video: MP4 MKV MOV AVI WebM FLV  ·  Audio: MP3 WAV M4A OGG FLAC AAC",
+        key="file_upload",
+    )
+    if uploaded:
+        st.markdown(
+            f'<div class="file-chip">📄 <span class="fname">{uploaded.name}</span>'
+            f'&nbsp;·&nbsp;{uploaded.size/1_048_576:.1f} MB</div>',
+            unsafe_allow_html=True,
         )
-        if uploaded:
-            st.markdown(
-                f'<div class="file-chip">📄 <span class="fname">{uploaded.name}</span>'
-                f'&nbsp;·&nbsp;{uploaded.size/1_048_576:.1f} MB</div>',
-                unsafe_allow_html=True,
-            )
-    with c2:
-        lang_f = st.selectbox("lang", ["english","hinglish"],
-                              key="lang_file", label_visibility="collapsed")
-    with c3:
-        st.markdown("<br>", unsafe_allow_html=True)
-        run_file = st.button("Analyse →", key="run_file", use_container_width=True)
-    if run_file:
-        if uploaded is None:
-            st.warning("Upload a file first.")
-        else:
-            suffix = "." + uploaded.name.rsplit(".", 1)[-1].lower()
-            os.makedirs("downloads", exist_ok=True)
-            tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix, dir="downloads")
-            tmp.write(uploaded.read())
-            tmp.flush(); tmp.close()
-            uploaded_path = tmp.name
-            source        = uploaded_path
-            language      = lang_f
+with c2:
+    language = st.selectbox("Language", ["english", "hinglish"],
+                            key="lang_file", label_visibility="collapsed")
+with c3:
+    st.markdown("<br>", unsafe_allow_html=True)
+    run_file = st.button("Analyse →", key="run_file", use_container_width=True)
+
+if run_file:
+    if uploaded is None:
+        st.warning("Upload a file first.")
+    else:
+        suffix = "." + uploaded.name.rsplit(".", 1)[-1].lower()
+        os.makedirs("downloads", exist_ok=True)
+        tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix, dir="downloads")
+        tmp.write(uploaded.read())
+        tmp.flush(); tmp.close()
+        uploaded_path = tmp.name
+        source        = uploaded_path
 
 st.markdown('</div>', unsafe_allow_html=True)
 
@@ -406,18 +344,15 @@ st.markdown('</div>', unsafe_allow_html=True)
 def run_pipeline_cached(source: str, language: str) -> dict:
     from dotenv import load_dotenv
     load_dotenv()
-    from utils.audio_processor import process_audio, is_youtube_url, get_youtube_transcript
+    from utils.audio_processor import process_audio
     from core.transcriber import transcribe_full
     from core.summarizer import summarize, generate_title
     from core.extractor import extract_action_items, extract_key_decisions, extract_questions
     from core.rag_engine import get_pipeline_retriever
     from core.vector_store import build_vector_store
 
-    if is_youtube_url(source):
-        transcript = get_youtube_transcript(source, language=language)
-    else:
-        chunks     = process_audio(source)
-        transcript = transcribe_full(chunks, language=language)
+    chunks     = process_audio(source)
+    transcript = transcribe_full(chunks, language=language)
 
     gc.collect()
     title     = generate_title(transcript)
@@ -459,14 +394,12 @@ if source:
 if st.session_state.pipeline_ran and st.session_state.pipeline_result:
     res = st.session_state.pipeline_result
 
-    # Title badge
     st.markdown(f"""
     <div class="title-row">
         <div class="title-badge">🎬 {res["title"]}</div>
     </div>
     """, unsafe_allow_html=True)
 
-    # Summary card full-width
     summary_clean = clean_llm_text(res["summary"])
     st.markdown(f"""
     <div class="result-card">
@@ -476,7 +409,6 @@ if st.session_state.pipeline_ran and st.session_state.pipeline_result:
     </div>
     """, unsafe_allow_html=True)
 
-    # 3-column cards
     col1, col2, col3 = st.columns(3, gap="medium")
 
     def _bullet_card(icon, title, content):
@@ -496,7 +428,6 @@ if st.session_state.pipeline_ran and st.session_state.pipeline_result:
     with col3:
         st.markdown(_bullet_card("❓", "Open Questions", res["open_questions"]), unsafe_allow_html=True)
 
-    # Transcript
     with st.expander("📄 Raw transcript"):
         st.text_area("t", label_visibility="collapsed",
                      value=res["transcript"], height=200)
@@ -508,25 +439,15 @@ if st.session_state.pipeline_ran and st.session_state.pipeline_result:
     # ─────────────────────────────────────────────
     st.markdown('<div class="section-label">Chat with your video</div>', unsafe_allow_html=True)
 
-    # Chat bubble renderer
-    def source_badge(src: str) -> str:
-        if "web" in src:
-            return '<span class="source-badge src-web">🌐 Web</span>'
-        elif "mixed" in src:
-            return '<span class="source-badge src-mixed">📎 Mixed</span>'
-        return '<span class="source-badge src-transcript">🎬 Transcript</span>'
-
-    # Render history
     chat_html = ""
     for turn in st.session_state.chat_display:
-        badge = source_badge(turn.get("source", "transcript"))
         bot_text = turn["bot"].replace("<", "&lt;").replace(">", "&gt;")
         chat_html += f"""
         <div class="bubble-row-user">
             <div class="bubble-user">{turn["user"]}</div>
         </div>
         <div class="bubble-row-bot">
-            {badge}
+            <span class="source-badge src-transcript">🎬 Transcript</span>
             <div class="bubble-bot">{bot_text}</div>
         </div>"""
 
@@ -535,7 +456,6 @@ if st.session_state.pipeline_ran and st.session_state.pipeline_result:
 
     st.markdown(f'<div class="chat-wrap">{chat_html}</div>', unsafe_allow_html=True)
 
-    # Input row
     q_col, btn_col = st.columns([6, 1], gap="small")
     with q_col:
         user_q = st.text_input("q", label_visibility="collapsed",
@@ -553,9 +473,7 @@ if st.session_state.pipeline_ran and st.session_state.pipeline_result:
                       "chat_history": st.session_state.chat_history_str}
             output = main_graph.invoke(state)
             raw_answer = output.get("answer", "")
-            src        = output.get("source", "transcript")
 
-        # Strip source tag line that rag_engine prepends, we handle display ourselves
         clean_answer = re.sub(r"^[🌐📎🎬]\s*\[.*?\]\s*\n?", "", raw_answer).strip()
         clean_answer = clean_llm_text(clean_answer)
 
@@ -563,6 +481,5 @@ if st.session_state.pipeline_ran and st.session_state.pipeline_result:
         st.session_state.chat_display.append({
             "user": user_q,
             "bot": clean_answer,
-            "source": src,
         })
         st.rerun()
