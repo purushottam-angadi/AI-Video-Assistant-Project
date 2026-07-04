@@ -1,0 +1,102 @@
+[
+  {
+    "question": "How does corporate event support currently work at the company?",
+    "answer": "Go-to-Market (GTM) teams sponsor events, with Product Marketing Managers (PMMs) and campaign managers providing support. Some events are assigned to specific teams, like Platform for Reinvent, CI/CD for Google Next, and GitOps for KubeCon."
+  },
+  {
+    "question": "Which team is assigned to KubeCon?",
+    "answer": "GitOps is assigned to KubeCon."
+  },
+  {
+    "question": "Which team is assigned to Google Next?",
+    "answer": "CI/CD is assigned to Google Next."
+  },
+  {
+    "question": "Which team is assigned to Reinvent?",
+    "answer": "Platform is assigned to Reinvent."
+  },
+  {
+    "question": "What is the goal for product announcements at the Commit event?",
+    "answer": "The goal is to highlight mature, GA (Generally Available) features from the past year, provide PR with three notable items per stage, and group iterations under broader themes for a cohesive narrative."
+  },
+  {
+    "question": "How many top overall items are they trying to identify for the keynote?",
+    "answer": "They are trying to create a top five overall list from around 30 items for the upcoming keynotes."
+  },
+  {
+    "question": "What are some of the top priority features identified for the keynote?",
+    "answer": "Top priorities include Vulnerability Management, Browser (a proprietary DAST scanner), Berserker, Kubernetes agent investments, Terraform integration, and CI/CD pipeline editor."
+  },
+  {
+    "question": "How are excitement levels for features measured?",
+    "answer": "Excitement levels (1-3) are a judgment call based on customer demand such as upvotes and usage metrics, anecdotal feedback, and input from the PR team, treated as a stack rank rather than raw scores."
+  },
+  {
+    "question": "What changes are being made to the competitive analysis document?",
+    "answer": "The competitive analysis will focus only on tier one competitors per stage initially, will include five competitors, and will add GitLab as a competitor for a balanced and honest assessment."
+  },
+  {
+    "question": "How will missing competitor capabilities be represented in the analysis?",
+    "answer": "Competitors missing capabilities will be explicitly scored, for example stating '0 out of 15' features in a category rather than omitting the gap."
+  },
+  {
+    "question": "What color scheme is preferred for the comparison charts and why?",
+    "answer": "Green is preferred over red to avoid implying competitors are 'worse,' focusing instead on presenting the company as an industry asset rather than a competitive attack."
+  },
+  {
+    "question": "What are some of the proposed taglines or slogans discussed?",
+    "answer": "Proposed taglines include 'Single source of truth, countless possibilities,' 'Secure and control your software factory and its deliverables,' and 'More speed, less risk with confidence.'"
+  },
+  {
+    "question": "Is 'more speed, less risk' considered an acceptable messaging phrase?",
+    "answer": "Yes, it is preferred for its clarity and because it avoids overpromising trade-offs."
+  },
+  {
+    "question": "What is the deadline for finalizing the top five features for keynotes?",
+    "answer": "The top five features for keynotes need to be finalized by Tuesday."
+  },
+  {
+    "question": "Who is responsible for updating the competitive comparison sheet?",
+    "answer": "Samia is responsible for updating the competitive comparison sheet to include only relevant tier-one competitors and to add GitLab as a line item."
+  },
+  {
+    "question": "What time frame is being considered for the product announcements?",
+    "answer": "The time frame is roughly the past year since GitLab 14.0, focusing on features that have matured to GA status."
+  },
+  {
+    "question": "Can features from the GitLab 14.0 announcement be reused for this event?",
+    "answer": "Yes, some features from 14.0 can be reused, with a few additions to cover different press areas."
+  },
+  {
+    "question": "What is the current status of the GitOps event cadence?",
+    "answer": "Events are on a two-week cadence, but GitOps events have been canceled after the enablement phase."
+  },
+  {
+    "question": "Is the infographic descriptive enough with stage names like 'Configure' and 'Monitor'?",
+    "answer": "Not yet fully descriptive, but the next iteration will separate presentation from underlying features and add more detailed descriptions."
+  },
+  {
+    "question": "What is the main purpose of the competitive comparison infographic?",
+    "answer": "The purpose is to create a useful industry comparison tool rather than a purely competitive marketing piece."
+  },
+  {
+    "question": "What is GitLab's current stock price?",
+    "answer": "This requires up-to-date market data not available in the meeting transcript; an assistant with web search should fetch the current live stock price."
+  },
+  {
+    "question": "Who is the current CEO of GitLab?",
+    "answer": "This requires current, real-world company information not found in the meeting transcript; an assistant with web search should retrieve the current CEO's name."
+  },
+  {
+    "question": "What are GitLab's latest product announcements this month?",
+    "answer": "This requires recent, up-to-date news not present in the meeting transcript; an assistant with web search access should look up the latest announcements."
+  },
+  {
+    "question": "Who are GitLab's main competitors in the DevOps platform market today?",
+    "answer": "This requires current market information; an assistant with web search should identify today's leading competitors such as GitHub and Azure DevOps."
+  },
+  {
+    "question": "What is the latest news about KubeCon this year?",
+    "answer": "This requires recent event news not covered in the meeting transcript; an assistant with web search should retrieve the latest KubeCon updates."
+  }
+]

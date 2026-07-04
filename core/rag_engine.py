@@ -48,7 +48,7 @@ class State(TypedDict):
 
 def retrieve_node(state: State)-> State:
     q = state['question']
-    vector_store = load_vector_store()        # always fresh
+    vector_store = load_vector_store()        
     fresh_retriever = get_retriever(vector_store)
     return {"docs": fresh_retriever.invoke(q)}
 
@@ -87,7 +87,7 @@ def doc_eval_score_node(state: State) -> State:
     result = doc_eval_chain.invoke({"question": q, "chunks": chunks_text})
     
 
-    print("DOC EVAL RESULT:", result)
+    # print("DOC EVAL RESULT:", result)
 
 
 
@@ -152,13 +152,13 @@ def web_search_node(state: State) -> State:
     q = state.get("web_query") or state["question"]
 
 
-    print("WEB SEARCH QUERY:", q)
+    # print("WEB SEARCH QUERY:", q)
 
 
 
 
     response = tavily.invoke({"query": q})
-    print("TAVILY RAW RESPONSE:", response)
+    # print("TAVILY RAW RESPONSE:", response)
     # TavilySearch returns a dict; the actual results are under "results"
     results = response.get("results", []) if isinstance(response, dict) else (response or [])
 
@@ -202,12 +202,12 @@ def refine_node(state:State)->State:
 
 
     
-    print("VERDICT:", state.get("verdict"))
-    print("DOCS TO USE COUNT:", len(docs_to_use))
+    # print("VERDICT:", state.get("verdict"))
+    # print("DOCS TO USE COUNT:", len(docs_to_use))
    
 
     context= "\n\n".join(d.page_content for d in docs_to_use).strip()
-    print("CONTEXT LENGTH:", len(context))
+    # print("CONTEXT LENGTH:", len(context))
     
 
     strips= decompose_to_sentences(context)
@@ -236,7 +236,7 @@ def refine_node(state:State)->State:
     refined_context= "\n".join(kept_strips)
     
 
-    print("REFINED CONTEXT:", refined_context)
+    # print("REFINED CONTEXT:", refined_context)
 
 
 
