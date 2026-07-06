@@ -18,19 +18,29 @@ from langgraph.graph import StateGraph, START, END
 from dotenv import load_dotenv
 
 from langchain_tavily import TavilySearch
+from langchain_core.rate_limiters import InMemoryRateLimiter
+
+rate_limiter = InMemoryRateLimiter(
+    requests_per_second=0.5,   # 1 request every 2 seconds — tune to your tier's limit
+    check_every_n_seconds=0.1,
+    max_bucket_size=1,
+)
 
 load_dotenv()
 
+from langchain_groq import ChatGroq
+
 def get_llm():
-    return ChatMistralAI(model = "mistral-small-2603", mistral_api_key = os.getenv("MISTRAL_API_KEY"),temperature=0.3)
+    return ChatGroq(model="llama-3.3-70b-versatile", groq_api_key=os.getenv("GROQ_API_KEY"), temperature=0.3)
+
 
 UPPER_TH = 0.7
 LOWER_TH = 0.3
 
-
 def get_pipeline_retriever():
     vector_store = load_vector_store()
     return get_retriever(vector_store)
+
 
 class State(TypedDict):
     question : str
@@ -46,11 +56,23 @@ class State(TypedDict):
     web_docs: List[Document]
     answer: str
 
-def retrieve_node(state: State)-> State:
+vector_store = load_vector_store()        
+_retriever = get_retriever(vector_store)
+
+def retrieve_node(state: State) -> State:
     q = state['question']
-    vector_store = load_vector_store()        
-    fresh_retriever = get_retriever(vector_store)
-    return {"docs": fresh_retriever.invoke(q)}
+    docs = _retriever.invoke(q)
+
+    # Drop exact-duplicate chunks before they hit any downstream LLM call
+    seen = set()
+    deduped_docs = []
+    for d in docs:
+        key = d.page_content.strip()
+        if key not in seen:
+            seen.add(key)
+            deduped_docs.append(d)
+
+    return {"docs": deduped_docs}
 
 #Score-based evaluator
 class DocScore(BaseModel):
@@ -61,11 +83,7 @@ class DocScore(BaseModel):
 class DocEvalBatch(BaseModel):
     scores: List[DocScore]
 
-def doc_eval_score_node(state: State) -> State:
-    q = state["question"]
-    docs = state["docs"]
-
-    doc_eval_prompt = ChatPromptTemplate.from_messages(
+doc_eval_prompt = ChatPromptTemplate.from_messages(
         [
             (
                 "system",
@@ -81,8 +99,13 @@ def doc_eval_score_node(state: State) -> State:
         ]
     )
 
-    doc_eval_chain = doc_eval_prompt | get_llm().with_structured_output(DocEvalBatch)
+doc_eval_chain = doc_eval_prompt | get_llm().with_structured_output(DocEvalBatch)
 
+def doc_eval_score_node(state: State) -> State:
+    q = state["question"]
+    docs = state["docs"]
+
+    
     chunks_text = "\n\n".join(f"[{i}] {d.page_content}" for i, d in enumerate(docs))
     result = doc_eval_chain.invoke({"question": q, "chunks": chunks_text})
     
@@ -120,11 +143,7 @@ def doc_eval_score_node(state: State) -> State:
 class WebQuery(BaseModel):
     query:str
 
-
-
-
-def rewrite_query_node(state:State)->State:
-    rewrite_prompt = ChatPromptTemplate.from_messages(
+rewrite_prompt = ChatPromptTemplate.from_messages(
     [
         (
             "system",
@@ -139,14 +158,18 @@ def rewrite_query_node(state:State)->State:
     ]
 )
 
-    rewrite_chain = rewrite_prompt | get_llm().with_structured_output(WebQuery)
+rewrite_chain = rewrite_prompt | get_llm().with_structured_output(WebQuery)
+
+
+def rewrite_query_node(state:State)->State:
+   
 
     out=rewrite_chain.invoke({"question":state["question"]})
     return {"web_query": out.query}
 
 
 
-tavily = TavilySearch(max_results=2, tavily_api_key=os.getenv("TAVILY_API_KEY"),include_raw_content=True)
+tavily = TavilySearch(max_results=2, tavily_api_key=os.getenv("TAVILY_API_KEY"),include_raw_content=False)
 
 def web_search_node(state: State) -> State:
     q = state.get("web_query") or state["question"]
@@ -186,6 +209,22 @@ def decompose_to_sentences(text : str)->List[str]:
 class RefinedContext(BaseModel):
     relevant_sentences: List[str]
 
+
+filter_prompt = ChatPromptTemplate.from_messages(
+    [
+        (
+            "system",
+            "You are a strict relevance filter for RAG context.\n"
+            "You will be given a question and a list of candidate sentences.\n"
+            "Return ONLY the sentences that directly help answer the question, "
+            "verbatim, in original order. Output JSON only.",
+        ),
+        ("human", "Question: {question}\n\nSentences:\n{sentences}"),
+    ]
+)
+
+filter_chain = filter_prompt | get_llm().with_structured_output(RefinedContext)
+
 def refine_node(state:State)->State:
 
     q = state["question"]
@@ -212,21 +251,7 @@ def refine_node(state:State)->State:
 
     strips= decompose_to_sentences(context)
     
-    filter_prompt = ChatPromptTemplate.from_messages(
-    [
-        (
-            "system",
-            "You are a strict relevance filter for RAG context.\n"
-            "You will be given a question and a list of candidate sentences.\n"
-            "Return ONLY the sentences that directly help answer the question, "
-            "verbatim, in original order. Output JSON only.",
-        ),
-        ("human", "Question: {question}\n\nSentences:\n{sentences}"),
-    ]
-)
-
-    filter_chain = filter_prompt | get_llm().with_structured_output(RefinedContext)
-
+   
     if strips:
         numbered = "\n".join(f"{i}: {s}" for i, s in enumerate(strips))
         kept_strips = filter_chain.invoke({"question": q, "sentences": numbered}).relevant_sentences
@@ -325,5 +350,3 @@ g.add_edge("refine", "generate")
 g.add_edge("generate", END)
 
 main_graph = g.compile()
-
-

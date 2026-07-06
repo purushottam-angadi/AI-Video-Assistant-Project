@@ -267,7 +267,7 @@ def transcribe_audio_chunk_groq(chunk_path: str) -> str:
         )
     return response if isinstance(response, str) else response.text
 
-# ---------------- Sarvam (Hinglish) ----------------
+
 def send_to_sarvam(piece_path: str) -> str:
     """Send one ≤25s WAV file to Sarvam and return transcript."""
     from sarvamai import SarvamAI
@@ -314,12 +314,14 @@ def transcribe_audio_chunk_sarvam(chunk_path: str) -> str:
 
     return " ".join(t for t in results if t).strip()
 
-# ---------------- Router ----------------
+
 def transcribe_audio_chunk(chunk_path: str, language: str = "english") -> str:
     if language.lower() == "hinglish":
         return transcribe_audio_chunk_sarvam(chunk_path)
     else:
         return transcribe_audio_chunk_groq(chunk_path)
+
+
 
 def transcribe_full(chunks: list, language: str = "english") -> str:
     import concurrent.futures

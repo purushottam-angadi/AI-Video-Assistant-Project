@@ -9,7 +9,7 @@ import re
 # ─────────────────────────────────────────────
 st.set_page_config(
     page_title="VideoMind",
-    page_icon="🎬",
+    page_icon="▣",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
@@ -28,121 +28,284 @@ def clean_llm_text(text: str) -> str:
     return text.strip()
 
 
+def estimate_speaking_time(word_count: int) -> str:
+    """Rough spoken-word estimate at ~150 wpm."""
+    minutes = max(1, round(word_count / 150))
+    if minutes < 60:
+        return f"~{minutes} min"
+    h, m = divmod(minutes, 60)
+    return f"~{h}h {m}m" if m else f"~{h}h"
+
+
+def fmt_size(num_bytes: int) -> str:
+    mb = num_bytes / 1_048_576
+    if mb < 1024:
+        return f"{mb:.1f} MB"
+    return f"{mb/1024:.2f} GB"
+
+
 # ─────────────────────────────────────────────
 # CSS
 # ─────────────────────────────────────────────
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Space+Grotesk:wght@500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap');
+
+:root {
+    --bg:        #0A0B0E;
+    --panel:     #121317;
+    --panel-alt: #16171C;
+    --border:    #22242B;
+    --border-hi: #2E313B;
+    --text:      #E7E8EA;
+    --text-dim:  #A0A3AC;
+    --text-mute: #63666F;
+    --accent:    #4C6EF5;
+    --accent-dim:#2B3A75;
+    --ok:        #3FA66C;
+    --warn:      #C9922B;
+}
 
 html, body, [class*="css"] {
     font-family: 'Inter', sans-serif;
-    background-color: #0D0F14;
-    color: #E2E4EA;
+    background-color: var(--bg);
+    color: var(--text);
 }
 
 #MainMenu, footer, header { visibility: hidden; }
-.block-container { padding: 2rem 2.5rem 4rem; max-width: 1100px; margin: 0 auto; }
+.block-container { padding: 2.2rem 2.5rem 4rem; max-width: 1120px; margin: 0 auto; }
 
 /* ── Hero ── */
-.hero { text-align: center; padding: 2.5rem 0 1.8rem; }
-.hero h1 {
-    font-family: 'Space Grotesk', sans-serif;
-    font-size: 2.8rem;
-    font-weight: 700;
-    letter-spacing: -0.03em;
-    background: linear-gradient(135deg, #7B7FFF 0%, #B06EFF 60%, #FF6EB4 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    margin-bottom: 0.4rem;
+.hero {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.4rem 0 1.6rem;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 1.8rem;
 }
-.hero p { color: #555A70; font-size: 0.95rem; margin: 0; }
+.hero-left { display: flex; align-items: center; gap: 0.85rem; }
+.hero-mark {
+    width: 40px; height: 40px;
+    border-radius: 9px;
+    background: var(--panel);
+    border: 1px solid var(--border-hi);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 600;
+    color: var(--accent);
+    font-size: 1.05rem;
+}
+.hero h1 {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 1.35rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--text);
+    margin: 0;
+    line-height: 1.2;
+}
+.hero p { color: var(--text-mute); font-size: 0.82rem; margin: 0.1rem 0 0; }
+.hero-tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-mute);
+    border: 1px solid var(--border-hi);
+    border-radius: 100px;
+    padding: 0.32rem 0.8rem;
+}
+
+/* ── Intro copy ── */
+.intro {
+    max-width: 640px;
+    color: var(--text-dim);
+    font-size: 0.95rem;
+    line-height: 1.7;
+    margin: 0 0 2rem;
+}
+
+/* ── How it works (timeline, not boxes) ── */
+.how-it-works {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2.2rem;
+    margin-bottom: 2.2rem;
+}
+.step { border-top: 2px solid var(--border-hi); padding-top: 0.9rem; }
+.step-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    margin-bottom: 0.45rem;
+}
+.step-title {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--text);
+    margin-bottom: 0.3rem;
+}
+.step-desc {
+    font-size: 0.82rem;
+    color: var(--text-mute);
+    line-height: 1.6;
+}
+@media (max-width: 900px) {
+    .how-it-works { grid-template-columns: 1fr; gap: 1.4rem; }
+}
 
 /* ── Input card ── */
 .input-card {
-    background: #13161F;
-    border: 1px solid #1E2230;
-    border-radius: 18px;
-    padding: 1.6rem 1.8rem 1.2rem;
-    margin-bottom: 1.8rem;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem 1.7rem 1.3rem;
+    margin-bottom: 1.6rem;
 }
 
 /* ── Section label ── */
 .section-label {
-    font-family: 'Space Grotesk', sans-serif;
+    font-family: 'IBM Plex Mono', monospace;
     font-size: 0.68rem;
-    font-weight: 700;
-    letter-spacing: 0.14em;
+    font-weight: 600;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: #3D4255;
-    margin-bottom: 0.75rem;
+    color: var(--text-mute);
+    margin-bottom: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.section-label::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--border);
 }
 
-/* ── Video title badge ── */
+/* ── Video title row ── */
 .title-row {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 0.75rem;
-    margin-bottom: 1.4rem;
+    margin-bottom: 1.2rem;
     flex-wrap: wrap;
 }
 .title-badge {
     display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
-    background: linear-gradient(135deg, #1A1730, #1A2235);
-    border: 1px solid #322D5C;
-    border-radius: 100px;
-    padding: 0.5rem 1.2rem;
-    font-family: 'Space Grotesk', sans-serif;
-    font-size: 0.95rem;
+    gap: 0.6rem;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 1.15rem;
     font-weight: 600;
-    color: #C084FC;
+    color: var(--text);
+}
+.title-badge .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--ok);
+    box-shadow: 0 0 0 3px rgba(63,166,108,0.15);
+}
+.status-chip {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ok);
+    background: rgba(63,166,108,0.08);
+    border: 1px solid rgba(63,166,108,0.28);
+    border-radius: 100px;
+    padding: 0.28rem 0.75rem;
+}
+
+/* ── Metrics bar ── */
+.metrics-row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0.9rem;
+    margin-bottom: 1.4rem;
+}
+.metric-tile {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.85rem 1rem;
+}
+.metric-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-mute);
+    margin-bottom: 0.35rem;
+}
+.metric-value {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--text);
 }
 
 /* ── Result cards ── */
 .result-card {
-    background: #13161F;
-    border: 1px solid #1E2230;
-    border-radius: 14px;
-    padding: 1.2rem 1.4rem;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--border-hi);
+    border-radius: 10px;
+    padding: 1.15rem 1.3rem;
     margin-bottom: 1rem;
     height: 100%;
-    transition: border-color 0.18s, box-shadow 0.18s;
+    transition: border-color 0.15s;
 }
-.result-card:hover {
-    border-color: #35395A;
-    box-shadow: 0 4px 24px rgba(123,127,255,0.06);
-}
-.card-icon { font-size: 1.1rem; margin-bottom: 0.5rem; }
+.result-card:hover { border-color: var(--border-hi); }
+.result-card.accent-blue  { border-left-color: var(--accent); }
+.result-card.accent-green { border-left-color: var(--ok); }
+.result-card.accent-amber { border-left-color: var(--warn); }
+
 .card-title {
-    font-family: 'Space Grotesk', sans-serif;
+    font-family: 'IBM Plex Mono', monospace;
     font-size: 0.68rem;
-    font-weight: 700;
-    letter-spacing: 0.12em;
+    font-weight: 600;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: #7B7FFF;
+    color: var(--text-dim);
     margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.card-count {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--text-mute);
+    background: var(--panel-alt);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.05rem 0.45rem;
 }
 .card-body {
     font-size: 0.875rem;
     line-height: 1.7;
-    color: #9DA3BC;
+    color: var(--text-dim);
 }
 .card-body ul { padding-left: 1.1rem; margin: 0; }
-.card-body li { margin-bottom: 0.35rem; }
+.card-body li { margin-bottom: 0.4rem; }
 
 /* ── Divider ── */
-.soft-divider { border: none; border-top: 1px solid #181B26; margin: 1.8rem 0; }
+.soft-divider { border: none; border-top: 1px solid var(--border); margin: 1.8rem 0; }
 
 /* ── Chat container ── */
 .chat-wrap {
-    background: #0F111A;
-    border: 1px solid #1A1D2B;
-    border-radius: 16px;
+    background: var(--panel-alt);
+    border: 1px solid var(--border);
+    border-radius: 12px;
     padding: 1.2rem 1.4rem;
     min-height: 80px;
-    max-height: 520px;
+    max-height: 480px;
     overflow-y: auto;
     margin-bottom: 1rem;
     display: flex;
@@ -152,114 +315,143 @@ html, body, [class*="css"] {
 
 .bubble-row-user { display: flex; justify-content: flex-end; }
 .bubble-user {
-    background: linear-gradient(135deg, #2A2060, #1E2A50);
-    border: 1px solid #3B3275;
-    border-radius: 18px 18px 4px 18px;
+    background: var(--accent-dim);
+    border: 1px solid #38428A;
+    border-radius: 12px 12px 2px 12px;
     padding: 0.65rem 1rem;
     max-width: 68%;
     font-size: 0.875rem;
-    color: #D8D0FF;
+    color: #DCE2FF;
     line-height: 1.55;
     word-wrap: break-word;
 }
 
 .bubble-row-bot { display: flex; justify-content: flex-start; flex-direction: column; gap: 0.3rem; }
 .source-badge {
-    font-size: 0.68rem;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.64rem;
     font-weight: 600;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text-mute);
     padding: 0.18rem 0.6rem;
-    border-radius: 100px;
+    border-radius: 6px;
+    background: var(--panel);
+    border: 1px solid var(--border);
     display: inline-block;
-    margin-left: 0.3rem;
 }
-.src-transcript { background: #1A1A3A; color: #7B7FFF; border: 1px solid #2E2A60; }
 .bubble-bot {
-    background: #13161F;
-    border: 1px solid #1E2230;
-    border-radius: 4px 18px 18px 18px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 2px 12px 12px 12px;
     padding: 0.75rem 1.1rem;
     max-width: 78%;
     font-size: 0.875rem;
-    color: #B0B6CC;
+    color: var(--text-dim);
     line-height: 1.7;
     word-wrap: break-word;
     white-space: pre-wrap;
 }
 
+/* ── Suggested prompts ── */
+.suggest-row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.9rem; }
+.suggest-chip {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.78rem;
+    color: var(--text-dim);
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    padding: 0.4rem 0.9rem;
+}
+
 /* ── Streamlit overrides ── */
 .stTextInput > div > div > input,
 .stTextArea textarea {
-    background: #0D0F14 !important;
-    border: 1px solid #1E2230 !important;
-    border-radius: 10px !important;
-    color: #E2E4EA !important;
+    background: var(--bg) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 8px !important;
+    color: var(--text) !important;
     font-family: 'Inter', sans-serif !important;
     font-size: 0.88rem !important;
 }
 .stTextInput > div > div > input:focus,
 .stTextArea textarea:focus {
-    border-color: #7B7FFF !important;
-    box-shadow: 0 0 0 3px rgba(123,127,255,0.12) !important;
+    border-color: var(--accent) !important;
+    box-shadow: 0 0 0 3px rgba(76,110,245,0.14) !important;
 }
 .stButton > button {
-    background: linear-gradient(135deg, #6366F1, #A855F7) !important;
+    background: var(--accent) !important;
     color: white !important;
     border: none !important;
-    border-radius: 10px !important;
-    font-family: 'Space Grotesk', sans-serif !important;
+    border-radius: 8px !important;
+    font-family: 'IBM Plex Sans', sans-serif !important;
     font-weight: 600 !important;
     font-size: 0.85rem !important;
     padding: 0.55rem 1.3rem !important;
-    letter-spacing: 0.03em !important;
-    transition: opacity 0.15s, transform 0.1s !important;
+    letter-spacing: 0.01em !important;
+    transition: background 0.15s, transform 0.1s !important;
 }
-.stButton > button:hover { opacity: 0.88 !important; transform: translateY(-1px) !important; }
+.stButton > button:hover { background: #3F5EDB !important; transform: translateY(-1px) !important; }
 .stButton > button:active { transform: translateY(0) !important; }
 
 .stSelectbox > div > div {
-    background: #0D0F14 !important;
-    border: 1px solid #1E2230 !important;
-    border-radius: 10px !important;
-    color: #E2E4EA !important;
+    background: var(--bg) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 8px !important;
+    color: var(--text) !important;
 }
 
 [data-testid="stFileUploader"] {
-    background: #0D0F14 !important;
-    border: 1.5px dashed #252838 !important;
-    border-radius: 12px !important;
+    background: var(--bg) !important;
+    border: 1.5px dashed var(--border-hi) !important;
+    border-radius: 10px !important;
 }
-[data-testid="stFileUploader"]:hover { border-color: #6366F1 !important; }
+[data-testid="stFileUploader"]:hover { border-color: var(--accent) !important; }
 
 .file-chip {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    background: #13161F;
-    border: 1px solid #252838;
+    background: var(--panel);
+    border: 1px solid var(--border);
     border-radius: 8px;
     padding: 0.35rem 0.8rem;
     font-size: 0.8rem;
-    color: #9DA3BC;
+    color: var(--text-dim);
     margin-top: 0.5rem;
 }
-.file-chip .fname { color: #818CF8; font-weight: 600; }
+.file-chip .fname { color: var(--accent); font-weight: 600; }
+.file-chip .ftype {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.66rem;
+    color: var(--text-mute);
+    background: var(--panel-alt);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 0.05rem 0.4rem;
+    text-transform: uppercase;
+}
 
-.stSpinner > div { color: #7B7FFF !important; }
+.stSpinner > div { color: var(--accent) !important; }
 
 .streamlit-expanderHeader {
-    background: #13161F !important;
-    border: 1px solid #1E2230 !important;
-    border-radius: 10px !important;
-    color: #9DA3BC !important;
+    background: var(--panel) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 8px !important;
+    color: var(--text-dim) !important;
     font-size: 0.85rem !important;
 }
 
 .chat-empty {
     text-align: center;
-    color: #2D3147;
+    color: var(--text-mute);
     font-size: 0.85rem;
     padding: 1.5rem 0;
+}
+
+@media (max-width: 900px) {
+    .metrics-row { grid-template-columns: repeat(2, 1fr); }
 }
 </style>
 """, unsafe_allow_html=True)
@@ -273,6 +465,7 @@ defaults = {
     "chat_history_str": "",
     "chat_display": [],
     "pipeline_ran": False,
+    "upload_meta": None,
 }
 for k, v in defaults.items():
     if k not in st.session_state:
@@ -284,8 +477,42 @@ for k, v in defaults.items():
 # ─────────────────────────────────────────────
 st.markdown("""
 <div class="hero">
-    <h1>VideoMind</h1>
-    <p>Transcribe · Summarise · Chat with any video or audio</p>
+    <div class="hero-left">
+        <div class="hero-mark">VM</div>
+        <div>
+            <h1>VideoMind</h1>
+            <p>Transcription, summarisation and Q&A for video and audio</p>
+        </div>
+    </div>
+    <div class="hero-tag">Local processing</div>
+</div>
+""", unsafe_allow_html=True)
+
+st.markdown("""
+<p class="intro">
+    Drop in a recorded meeting, lecture, interview or podcast and VideoMind turns it into a
+    transcript, a summary, and a running list of action items, decisions and open questions —
+    then lets you ask follow-up questions directly against the recording.
+</p>
+""", unsafe_allow_html=True)
+
+st.markdown("""
+<div class="how-it-works">
+    <div class="step">
+        <div class="step-num">01 · UPLOAD</div>
+        <div class="step-title">Add a recording</div>
+        <div class="step-desc">Drop in a video or audio file up to a couple of hours long, in English or Hinglish.</div>
+    </div>
+    <div class="step">
+        <div class="step-num">02 · ANALYSE</div>
+        <div class="step-title">Automatic breakdown</div>
+        <div class="step-desc">VideoMind transcribes the recording and extracts a summary, action items and decisions.</div>
+    </div>
+    <div class="step">
+        <div class="step-num">03 · ASK</div>
+        <div class="step-title">Chat with the content</div>
+        <div class="step-desc">Ask follow-up questions and get answers grounded in the transcript, with sources cited.</div>
+    </div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -294,13 +521,14 @@ st.markdown("""
 # Input card — File upload only
 # ─────────────────────────────────────────────
 ALLOWED_EXT = ["mp4","mkv","mov","avi","webm","flv","mp3","wav","m4a","ogg","flac","aac"]
+AUDIO_EXT = {"mp3","wav","m4a","ogg","flac","aac"}
 
 source        = ""
 uploaded_path = None
 language      = "english"
 
 st.markdown('<div class="input-card">', unsafe_allow_html=True)
-st.markdown('<div class="section-label">Upload File</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-label">Upload file</div>', unsafe_allow_html=True)
 
 c1, c2, c3 = st.columns([4, 1, 1], gap="medium")
 with c1:
@@ -311,9 +539,14 @@ with c1:
         key="file_upload",
     )
     if uploaded:
+        ext = uploaded.name.rsplit(".", 1)[-1].lower()
+        kind = "Audio" if ext in AUDIO_EXT else "Video"
         st.markdown(
-            f'<div class="file-chip">📄 <span class="fname">{uploaded.name}</span>'
-            f'&nbsp;·&nbsp;{uploaded.size/1_048_576:.1f} MB</div>',
+            f'<div class="file-chip">'
+            f'<span class="fname">{uploaded.name}</span>'
+            f'&nbsp;·&nbsp;{fmt_size(uploaded.size)}'
+            f'&nbsp;<span class="ftype">{kind} · {ext}</span>'
+            f'</div>',
             unsafe_allow_html=True,
         )
 with c2:
@@ -329,11 +562,18 @@ if run_file:
     else:
         suffix = "." + uploaded.name.rsplit(".", 1)[-1].lower()
         os.makedirs("downloads", exist_ok=True)
+        file_bytes = uploaded.read()
         tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix, dir="downloads")
-        tmp.write(uploaded.read())
+        tmp.write(file_bytes)
         tmp.flush(); tmp.close()
         uploaded_path = tmp.name
         source        = uploaded_path
+        st.session_state.upload_meta = {
+            "name": uploaded.name,
+            "ext": suffix.lstrip(".").upper(),
+            "size": fmt_size(len(file_bytes)),
+            "kind": "Audio" if suffix.lstrip(".").lower() in AUDIO_EXT else "Video",
+        }
 
 st.markdown('</div>', unsafe_allow_html=True)
 
@@ -393,17 +633,48 @@ if source:
 # ─────────────────────────────────────────────
 if st.session_state.pipeline_ran and st.session_state.pipeline_result:
     res = st.session_state.pipeline_result
+    meta = st.session_state.upload_meta or {}
+
+    word_count = len(res["transcript"].split())
+    n_actions   = len([l for l in res["action_items"].split("\n") if l.strip()])
+    n_decisions = len([l for l in res["key_decisions"].split("\n") if l.strip()])
+    n_questions = len([l for l in res["open_questions"].split("\n") if l.strip()])
 
     st.markdown(f"""
     <div class="title-row">
-        <div class="title-badge">🎬 {res["title"]}</div>
+        <div class="title-badge"><span class="dot"></span>{res["title"]}</div>
+        <div class="status-chip">Analysis complete</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown(f"""
+    <div class="metrics-row">
+        <div class="metric-tile">
+            <div class="metric-label">Source</div>
+            <div class="metric-value">{meta.get('kind','—')}</div>
+        </div>
+        <div class="metric-tile">
+            <div class="metric-label">Format</div>
+            <div class="metric-value">{meta.get('ext','—')}</div>
+        </div>
+        <div class="metric-tile">
+            <div class="metric-label">File size</div>
+            <div class="metric-value">{meta.get('size','—')}</div>
+        </div>
+        <div class="metric-tile">
+            <div class="metric-label">Transcript words</div>
+            <div class="metric-value">{word_count:,}</div>
+        </div>
+        <div class="metric-tile">
+            <div class="metric-label">Est. spoken length</div>
+            <div class="metric-value">{estimate_speaking_time(word_count)}</div>
+        </div>
     </div>
     """, unsafe_allow_html=True)
 
     summary_clean = clean_llm_text(res["summary"])
     st.markdown(f"""
-    <div class="result-card">
-        <div class="card-icon">📋</div>
+    <div class="result-card accent-blue">
         <div class="card-title">Summary</div>
         <div class="card-body">{summary_clean}</div>
     </div>
@@ -411,24 +682,23 @@ if st.session_state.pipeline_ran and st.session_state.pipeline_result:
 
     col1, col2, col3 = st.columns(3, gap="medium")
 
-    def _bullet_card(icon, title, content):
+    def _bullet_card(title, content, count, accent_class):
         lines = [l.lstrip("•-– *").strip() for l in clean_llm_text(content).split("\n") if l.strip()]
         items = "".join(f"<li>{l}</li>" for l in lines) if lines else "<li>None found</li>"
         return f"""
-        <div class="result-card">
-            <div class="card-icon">{icon}</div>
-            <div class="card-title">{title}</div>
+        <div class="result-card {accent_class}">
+            <div class="card-title">{title}<span class="card-count">{count}</span></div>
             <div class="card-body"><ul>{items}</ul></div>
         </div>"""
 
     with col1:
-        st.markdown(_bullet_card("✅", "Action Items", res["action_items"]), unsafe_allow_html=True)
+        st.markdown(_bullet_card("Action items", res["action_items"], n_actions, "accent-green"), unsafe_allow_html=True)
     with col2:
-        st.markdown(_bullet_card("🔑", "Key Decisions", res["key_decisions"]), unsafe_allow_html=True)
+        st.markdown(_bullet_card("Key decisions", res["key_decisions"], n_decisions, "accent-blue"), unsafe_allow_html=True)
     with col3:
-        st.markdown(_bullet_card("❓", "Open Questions", res["open_questions"]), unsafe_allow_html=True)
+        st.markdown(_bullet_card("Open questions", res["open_questions"], n_questions, "accent-amber"), unsafe_allow_html=True)
 
-    with st.expander("📄 Raw transcript"):
+    with st.expander("Raw transcript"):
         st.text_area("t", label_visibility="collapsed",
                      value=res["transcript"], height=200)
 
@@ -439,6 +709,15 @@ if st.session_state.pipeline_ran and st.session_state.pipeline_result:
     # ─────────────────────────────────────────────
     st.markdown('<div class="section-label">Chat with your video</div>', unsafe_allow_html=True)
 
+    if not st.session_state.chat_display:
+        st.markdown("""
+        <div class="suggest-row">
+            <div class="suggest-chip">Summarise the key takeaways</div>
+            <div class="suggest-chip">What decisions were made?</div>
+            <div class="suggest-chip">List any deadlines mentioned</div>
+        </div>
+        """, unsafe_allow_html=True)
+
     chat_html = ""
     for turn in st.session_state.chat_display:
         bot_text = turn["bot"].replace("<", "&lt;").replace(">", "&gt;")
@@ -447,7 +726,7 @@ if st.session_state.pipeline_ran and st.session_state.pipeline_result:
             <div class="bubble-user">{turn["user"]}</div>
         </div>
         <div class="bubble-row-bot">
-            <span class="source-badge src-transcript">🎬 Transcript</span>
+            <span class="source-badge">Transcript</span>
             <div class="bubble-bot">{bot_text}</div>
         </div>"""
 
