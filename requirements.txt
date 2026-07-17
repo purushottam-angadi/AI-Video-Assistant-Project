@@ -3,6 +3,7 @@ pydub>=0.25.1
 ffmpeg-python>=0.2.0
 groq
 langsmith
+langchain-groq
 
 langchain>=0.2.0
 langchain-core>=0.2.0
