@@ -139,7 +139,7 @@ def run_pipeline(source: str, language: str = "english") -> dict:
 
     gc.collect()
     build_vector_store(transcript) 
-    retriever = get_pipeline_retriever() # ✅ build embeddings/vector store
+    get_pipeline_retriever() # ✅ build embeddings/vector store
 
     return {
         "title": title,

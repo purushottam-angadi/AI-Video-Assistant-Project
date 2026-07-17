@@ -38,8 +38,10 @@ UPPER_TH = 0.7
 LOWER_TH = 0.3
 
 def get_pipeline_retriever():
+    global _retriever 
     vector_store = load_vector_store()
-    return get_retriever(vector_store)
+    _retriever = get_retriever(vector_store)
+    return _retriever
 
 
 class State(TypedDict):
@@ -56,8 +58,8 @@ class State(TypedDict):
     web_docs: List[Document]
     answer: str
 
-vector_store = load_vector_store()        
-_retriever = get_retriever(vector_store)
+      
+_retriever = None
 
 def retrieve_node(state: State) -> State:
     q = state['question']
