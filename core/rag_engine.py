@@ -28,8 +28,6 @@ rate_limiter = InMemoryRateLimiter(
 
 load_dotenv()
 
-from langchain_groq import ChatGroq
-
 def get_llm():
     return ChatMistralAI(model = "mistral-small-2603", mistral_api_key = os.getenv("MISTRAL_API_KEY"),temperature=0.3)
 
