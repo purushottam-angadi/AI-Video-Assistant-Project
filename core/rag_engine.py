@@ -31,23 +31,18 @@ load_dotenv()
 from langchain_groq import ChatGroq
 
 def get_llm():
-    return ChatGroq(model="llama-3.3-70b-versatile", groq_api_key=os.getenv("GROQ_API_KEY"), temperature=0.3)
+    return ChatMistralAI(model = "mistral-small-2603", mistral_api_key = os.getenv("MISTRAL_API_KEY"),temperature=0.3)
 
 
 UPPER_TH = 0.7
 LOWER_TH = 0.3
 
-def get_pipeline_retriever(vector_store=None):
-    global _retriever
-    if vector_store is None:
-        vector_store = load_vector_store()
-    _retriever = get_retriever(vector_store)  # k=4 comes from vector_store.py
-    return _retriever
 
 class State(TypedDict):
     question : str
     chat_history : str
     docs: List[Document]
+    retriever: object  
     good_docs: List[Document]
     verdict: str
     reason: str
@@ -63,7 +58,7 @@ _retriever = None
 
 def retrieve_node(state: State) -> State:
     q = state['question']
-    docs = _retriever.invoke(q)
+    docs = state['retriever'].invoke(q)
 
     # Drop exact-duplicate chunks before they hit any downstream LLM call
     seen = set()

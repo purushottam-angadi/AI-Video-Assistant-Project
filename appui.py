@@ -1,6 +1,7 @@
 import streamlit as st
 import gc
 import os
+import shutil
 import tempfile
 import re
 
@@ -460,12 +461,17 @@ html, body, [class*="css"] {
 # ─────────────────────────────────────────────
 # Session state
 # ─────────────────────────────────────────────
+# NOTE: "retriever" is stored here because it must survive across Streamlit
+# reruns (every button click reruns the whole script). Without session_state,
+# the retriever built right after upload would be gone by the time the user
+# sends a chat message on the next rerun.
 defaults = {
     "pipeline_result": None,
     "chat_history_str": "",
     "chat_display": [],
     "pipeline_ran": False,
     "upload_meta": None,
+    "retriever": None,
 }
 for k, v in defaults.items():
     if k not in st.session_state:
@@ -562,16 +568,18 @@ if run_file:
     else:
         suffix = "." + uploaded.name.rsplit(".", 1)[-1].lower()
         os.makedirs("downloads", exist_ok=True)
-        file_bytes = uploaded.read()
         tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix, dir="downloads")
-        tmp.write(file_bytes)
-        tmp.flush(); tmp.close()
+        # Stream the upload straight to disk instead of uploaded.read() into a
+        # separate bytes variable — avoids holding a second full copy in RAM.
+        shutil.copyfileobj(uploaded, tmp)
+        size_bytes = tmp.tell()
+        tmp.close()
         uploaded_path = tmp.name
         source        = uploaded_path
         st.session_state.upload_meta = {
             "name": uploaded.name,
             "ext": suffix.lstrip(".").upper(),
-            "size": fmt_size(len(file_bytes)),
+            "size": fmt_size(size_bytes),
             "kind": "Audio" if suffix.lstrip(".").lower() in AUDIO_EXT else "Video",
         }
 
@@ -588,30 +596,38 @@ def run_pipeline_cached(source: str, language: str) -> dict:
     from core.transcriber import transcribe_full
     from core.summarizer import summarize, generate_title
     from core.extractor import extract_action_items, extract_key_decisions, extract_questions
-    from core.rag_engine import get_pipeline_retriever
-    from core.vector_store import build_vector_store
+    from core.vector_store import build_vector_store, get_retriever
 
     chunks     = process_audio(source)
     transcript = transcribe_full(chunks, language=language)
-
     gc.collect()
+
     title     = generate_title(transcript)
     summary   = summarize(transcript)
     actions   = extract_action_items(transcript)
     decisions = extract_key_decisions(transcript)
     questions = extract_questions(transcript)
     gc.collect()
+
+    # In-memory only vector store, isolated per call — see core/vector_store.py
     vs = build_vector_store(transcript)
-    get_pipeline_retriever(vs)
+    retriever = get_retriever(vs)
 
     return {
         "title": title, "transcript": transcript,
         "summary": summary, "action_items": actions,
         "key_decisions": decisions, "open_questions": questions,
+        "retriever": retriever,
     }
 
 
 if source:
+    # Drop the previous video's retriever/vector store before building the new
+    # one, so we're never holding two videos' worth of vectors in RAM at once.
+    if st.session_state.retriever is not None:
+        st.session_state.retriever = None
+        gc.collect()
+
     st.session_state.chat_history_str = ""
     st.session_state.chat_display     = []
     st.session_state.pipeline_ran     = False
@@ -621,6 +637,7 @@ if source:
             result = run_pipeline_cached(source, language)
             st.session_state.pipeline_result = result
             st.session_state.pipeline_ran    = True
+            st.session_state.retriever       = result["retriever"]
         except Exception as e:
             st.error(f"Pipeline error: {e}")
         finally:
@@ -745,20 +762,26 @@ if st.session_state.pipeline_ran and st.session_state.pipeline_result:
         send = st.button("Send →", key="send_btn", use_container_width=True)
 
     if send and user_q.strip():
-        from core.rag_engine import main_graph
+        if st.session_state.retriever is None:
+            st.warning("Upload and analyse a video first.")
+        else:
+            from core.rag_engine import main_graph
 
-        with st.spinner("Thinking…"):
-            state  = {"question": user_q.strip(),
-                      "chat_history": st.session_state.chat_history_str}
-            output = main_graph.invoke(state)
-            raw_answer = output.get("answer", "")
+            with st.spinner("Thinking…"):
+                state = {
+                    "question": user_q.strip(),
+                    "chat_history": st.session_state.chat_history_str,
+                    "retriever": st.session_state.retriever,
+                }
+                output = main_graph.invoke(state)
+                raw_answer = output.get("answer", "")
 
-        clean_answer = re.sub(r"^[🌐📎🎬]\s*\[.*?\]\s*\n?", "", raw_answer).strip()
-        clean_answer = clean_llm_text(clean_answer)
+            clean_answer = re.sub(r"^[🌐📎🎬]\s*\[.*?\]\s*\n?", "", raw_answer).strip()
+            clean_answer = clean_llm_text(clean_answer)
 
-        st.session_state.chat_history_str += f"User: {user_q}\nAssistant: {clean_answer}\n"
-        st.session_state.chat_display.append({
-            "user": user_q,
-            "bot": clean_answer,
-        })
-        st.rerun()
+            st.session_state.chat_history_str += f"User: {user_q}\nAssistant: {clean_answer}\n"
+            st.session_state.chat_display.append({
+                "user": user_q,
+                "bot": clean_answer,
+            })
+            st.rerun()

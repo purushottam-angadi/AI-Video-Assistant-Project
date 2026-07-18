@@ -308,7 +308,7 @@ def transcribe_audio_chunk_sarvam(chunk_path: str) -> str:
                 os.remove(piece_path)
 
     results = [None] * total_pieces
-    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
         for i, transcript in executor.map(process_piece, piece_args):
             results[i] = transcript
 
@@ -320,8 +320,6 @@ def transcribe_audio_chunk(chunk_path: str, language: str = "english") -> str:
         return transcribe_audio_chunk_sarvam(chunk_path)
     else:
         return transcribe_audio_chunk_groq(chunk_path)
-
-
 
 def transcribe_full(chunks: list, language: str = "english") -> str:
     import concurrent.futures
@@ -336,8 +334,12 @@ def transcribe_full(chunks: list, language: str = "english") -> str:
             os.remove(chunk)
         return i, transcript
 
+    # Keep it modest either way — Groq is API-bound so this is safe,
+    # and it caps the OUTER layer so it doesn't stack with Sarvam's inner pool.
+    max_workers = 3 if language.lower() != "hinglish" else 2
+
     results = [None] * len(chunks)
-    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
         for i, transcript in executor.map(process_chunk, enumerate(chunks)):
             results[i] = transcript
 
