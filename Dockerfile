@@ -41,7 +41,9 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements and install
+
 COPY requirements.txt ./
+ARG CACHE_BUST=1
 RUN pip3 install --no-cache-dir -r requirements.txt
 
 # Copy app code
