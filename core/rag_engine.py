@@ -37,12 +37,12 @@ def get_llm():
 UPPER_TH = 0.7
 LOWER_TH = 0.3
 
-def get_pipeline_retriever():
-    global _retriever 
-    vector_store = load_vector_store()
-    _retriever = get_retriever(vector_store)
+def get_pipeline_retriever(vector_store=None):
+    global _retriever
+    if vector_store is None:
+        vector_store = load_vector_store()
+    _retriever = get_retriever(vector_store)  # k=4 comes from vector_store.py
     return _retriever
-
 
 class State(TypedDict):
     question : str

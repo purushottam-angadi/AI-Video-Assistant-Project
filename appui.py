@@ -601,8 +601,8 @@ def run_pipeline_cached(source: str, language: str) -> dict:
     decisions = extract_key_decisions(transcript)
     questions = extract_questions(transcript)
     gc.collect()
-    build_vector_store(transcript)
-    get_pipeline_retriever()
+    vs = build_vector_store(transcript)
+    get_pipeline_retriever(vs)
 
     return {
         "title": title, "transcript": transcript,

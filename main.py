@@ -120,11 +120,6 @@ def run_pipeline(source: str, language: str = "english") -> dict:
        
     else:
         chunks = process_audio(source)
-      
-
-        transcript = transcribe_full(chunks, language=language)
-
-        chunks = process_audio(source)
         transcript = transcribe_full(chunks, language=language)
     
     
