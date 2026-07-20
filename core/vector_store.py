@@ -1,7 +1,7 @@
 
 
 import os
-from langchain_chroma import Chroma
+from langchain_community import FAISS
 from langchain_mistralai import MistralAIEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-CHROMA_DIR = "vector_db"
+FAISS_DIR = "vector_db"
 COLLECTION_NAME = "meeting_transcript"
 EMBEDDING_MODEL = "mistral-embed"  # 1024-dim, API-based — no local model in memory
 
@@ -62,35 +62,14 @@ def split_transcript(transcript: str) -> list[Document]:
 #     print(f"   Chunks indexed: {len(docs)}")
 #     return vectorstore
 
-
-
-def build_vector_store(transcript: str) -> Chroma:
-    """In-memory only — no persistence, no shared collection name."""
+def build_vector_store(transcript: str) -> FAISS:
     docs = split_transcript(transcript)
     embeddings = get_embeddings()
-    return Chroma.from_documents(documents=docs, embedding=embeddings)
+    return FAISS.from_documents(documents=docs, embedding=embeddings)
 
 
-def load_vector_store() -> Chroma:
-    """
-    Loads an existing Chroma vector store from disk.
-    Raises if the persist directory doesn't exist yet (call build_vector_store first).
-    """
-    if not os.path.exists(CHROMA_DIR):
-        raise FileNotFoundError(
-            f"Vector store not found at '{CHROMA_DIR}'. "
-            "Run build_vector_store() first."
-        )
 
-    embeddings = get_embeddings()
-    return Chroma(
-        collection_name=COLLECTION_NAME,
-        embedding_function=embeddings,
-        persist_directory=CHROMA_DIR,
-    )
-
-
-def get_retriever(vector_store: Chroma, k: int = 4):
+def get_retriever(vector_store: FAISS, k: int = 4):
     """
     Returns a similarity-based retriever from the given vector store.
     k: number of top chunks to retrieve per query.
