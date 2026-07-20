@@ -10,7 +10,7 @@ from langchain_mistralai import ChatMistralAI
 from langchain_core.prompts import ChatPromptTemplate
 # from langchain_core.output_parsers import StrOutputParser
 # from langchain_core.runnables import RunnablePassthrough, RunnableLambda
-from core.vector_store import get_retriever, load_vector_store
+# from core.vector_store import get_retriever
 from langchain_core.documents import Document
 
 
@@ -52,7 +52,7 @@ class State(TypedDict):
     answer: str
 
       
-_retriever = None
+
 
 def retrieve_node(state: State) -> State:
     q = state['question']
