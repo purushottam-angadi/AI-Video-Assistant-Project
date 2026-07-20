@@ -22,7 +22,7 @@ EXPOSE 8080
 
 HEALTHCHECK CMD bash -c "curl --fail http://localhost:$PORT/_stcore/health || exit 1"
 
-CMD streamlit run appui.py \
+CMD streamlit run app.py \
     --server.port=$PORT \
     --server.address=0.0.0.0 \
     --server.fileWatcherType=none \
