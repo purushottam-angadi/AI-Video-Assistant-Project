@@ -1,7 +1,7 @@
 
 
 import os
-from langchain_community import FAISS
+from langchain_community.vectorstores.faiss import FAISS
 from langchain_mistralai import MistralAIEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
