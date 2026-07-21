@@ -181,22 +181,26 @@
 #         chat_history += f"User: {question}\nAssistant: {answer}\n"
 
 #         print(f"\n🤖 Assistant: {answer}\n")
-from utils.audio_processor import process_audio, is_youtube_url, get_youtube_transcript
-from core.transcriber import transcribe_full
-from dotenv import load_dotenv
-load_dotenv()
-import gc
-import os
-import psutil
-from core.summarizer import summarize, generate_title
-from core.extractor import extract_action_items, extract_key_decisions, extract_questions
-from core.rag_engine import main_graph
-from core.vector_store import build_vector_store, get_retriever
+# from utils.audio_processor import process_audio, is_youtube_url, get_youtube_transcript
+# from core.transcriber import transcribe_full
+# from dotenv import load_dotenv
+# load_dotenv()
+# import gc
+# import os
+# import psutil
+# from core.summarizer import summarize, generate_title
+# from core.extractor import extract_action_items, extract_key_decisions, extract_questions
+# from core.rag_engine import main_graph
+# from core.vector_store import build_vector_store, get_retriever
 
-# ─────────────────────────────────────────────
+# # ─────────────────────────────────────────────
 # Memory logging helper
 # ─────────────────────────────────────────────
+import psutil
+import os
 _process = psutil.Process(os.getpid())
+
+
 
 def log_mem(label: str):
     """Print current resident memory (RSS) usage, in MB, with a label."""
@@ -205,6 +209,18 @@ def log_mem(label: str):
 
 
 def run_pipeline(source: str, language: str = "english") -> dict:
+
+    from utils.audio_processor import process_audio, is_youtube_url, get_youtube_transcript
+    from core.transcriber import transcribe_full
+    from dotenv import load_dotenv
+    load_dotenv()
+    import gc
+    
+    
+    from core.summarizer import summarize, generate_title
+    from core.extractor import extract_action_items, extract_key_decisions, extract_questions
+    
+    from core.vector_store import build_vector_store, get_retriever
     print("starting AI Video Assistant")
     log_mem("start")
 
@@ -295,6 +311,7 @@ if __name__ == "__main__":
             "chat_history": chat_history,
             "retriever": retriever,   # required now — see rag_engine.py State
         }
+        from core.rag_engine import main_graph
         answer = main_graph.invoke(state)["answer"]
 
         log_mem(f"after chat turn ({question[:20]!r})")
