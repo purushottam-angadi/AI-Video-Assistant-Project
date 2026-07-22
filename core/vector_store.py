@@ -9,8 +9,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-FAISS_DIR = "vector_db"
-COLLECTION_NAME = "meeting_transcript"
+
 EMBEDDING_MODEL = "mistral-embed"  # 1024-dim, API-based — no local model in memory
 
 
@@ -42,25 +41,6 @@ def split_transcript(transcript: str) -> list[Document]:
     ]
 
 
-# def build_vector_store(transcript: str) -> Chroma:
-#     """
-#     Embeds transcript chunks and persists them into a local Chroma vector store.
-#     Safe to call multiple times — Chroma will overwrite the existing collection.
-#     """
-#     print("Building vector store...")
-#     docs = split_transcript(transcript)
-#     embeddings = get_embeddings()
-
-#     vectorstore = Chroma.from_documents(
-#         documents=docs,
-#         embedding=embeddings,
-#         persist_directory=CHROMA_DIR,
-#         collection_name=COLLECTION_NAME,
-#     )
-
-#     print(f"✅ Vector store built at '{CHROMA_DIR}', collection: '{COLLECTION_NAME}'")
-#     print(f"   Chunks indexed: {len(docs)}")
-#     return vectorstore
 
 def build_vector_store(transcript: str) -> FAISS:
     docs = split_transcript(transcript)

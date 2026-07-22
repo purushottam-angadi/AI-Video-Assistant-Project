@@ -1,3 +1,85 @@
+
+from urllib.parse import urlparse, parse_qs
+import subprocess
+import os
+
+DOWNLOAD_DIR = "downloads"
+os.makedirs(DOWNLOAD_DIR, exist_ok=True)
+
+
+def is_youtube_url(source: str) -> bool:
+    """Check if the given source string is a YouTube URL."""
+    return "youtube.com" in source or "youtu.be" in source
+
+
+def extract_video_id(url: str) -> str:
+    """Extract the video ID from a YouTube URL (watch, youtu.be, embed, shorts)."""
+    parsed = urlparse(url)
+    host = (parsed.hostname or "").lower()
+
+    if host in ("youtu.be",):
+        return parsed.path.lstrip("/").split("/")[0]
+
+    if host in ("www.youtube.com", "youtube.com", "m.youtube.com", "music.youtube.com"):
+        if parsed.path == "/watch":
+            video_id = parse_qs(parsed.query).get("v", [None])[0]
+            if video_id:
+                return video_id
+        for prefix in ("/embed/", "/v/", "/shorts/"):
+            if parsed.path.startswith(prefix):
+                return parsed.path.split("/")[2]
+
+    raise ValueError(f"Could not extract video ID from URL: {url}")
+
+
+def get_youtube_transcript(url: str, language: str = "english") -> str:
+ 
+    from youtube_transcript_api import YouTubeTranscriptApi
+
+    video_id = extract_video_id(url)
+    lang_codes = ["hi", "en"] if language.lower() == "hinglish" else ["en", "hi"]
+
+    if hasattr(YouTubeTranscriptApi, "get_transcript"):
+        transcript_list = YouTubeTranscriptApi.get_transcript(video_id, languages=lang_codes)
+        text = " ".join(segment["text"].strip() for segment in transcript_list if segment.get("text"))
+    else:
+        fetched = YouTubeTranscriptApi().fetch(video_id, languages=lang_codes)
+        text = " ".join(snippet.text.strip() for snippet in fetched if snippet.text)
+
+    return text.strip()
+
+
+
+def process_audio(source: str, chunk_length_secs: int = 60) -> list:
+ 
+    base_name = os.path.splitext(os.path.basename(source))[0]
+    pattern = os.path.join(DOWNLOAD_DIR, f"{base_name}_chunk_%03d.wav")
+
+    cmd = [
+        "ffmpeg", "-y", "-i", source,
+        "-ar", "16000", "-ac", "1",
+        "-f", "segment", "-segment_time", str(chunk_length_secs),
+        pattern,
+    ]
+
+    print("Splitting audio into chunks via ffmpeg...")
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        raise RuntimeError(f"ffmpeg failed: {result.stderr}")
+
+    chunks = sorted(
+        os.path.join(DOWNLOAD_DIR, f)
+        for f in os.listdir(DOWNLOAD_DIR)
+        if f.startswith(f"{base_name}_chunk_") and f.endswith(".wav")
+    )
+    if not chunks:
+        raise ValueError(f"No chunks produced for {source}")
+
+    print(f"Audio processing complete. Generated {len(chunks)} chunks.")
+    return chunks
+
+
+
 # # from pydub import AudioSegment
 # # from urllib.parse import urlparse, parse_qs
 # # import os
@@ -90,98 +172,4 @@
 # #         os.remove(wav_path)
 # #     print(f"Audio processing complete. Generated {len(chunks)} chunks.")
 # #     return chunks
-
-
-from urllib.parse import urlparse, parse_qs
-import subprocess
-import os
-
-DOWNLOAD_DIR = "downloads"
-os.makedirs(DOWNLOAD_DIR, exist_ok=True)
-
-# ---------------- YouTube transcript helpers ----------------
-def is_youtube_url(source: str) -> bool:
-    """Check if the given source string is a YouTube URL."""
-    return "youtube.com" in source or "youtu.be" in source
-
-
-def extract_video_id(url: str) -> str:
-    """Extract the video ID from a YouTube URL (watch, youtu.be, embed, shorts)."""
-    parsed = urlparse(url)
-    host = (parsed.hostname or "").lower()
-
-    if host in ("youtu.be",):
-        return parsed.path.lstrip("/").split("/")[0]
-
-    if host in ("www.youtube.com", "youtube.com", "m.youtube.com", "music.youtube.com"):
-        if parsed.path == "/watch":
-            video_id = parse_qs(parsed.query).get("v", [None])[0]
-            if video_id:
-                return video_id
-        for prefix in ("/embed/", "/v/", "/shorts/"):
-            if parsed.path.startswith(prefix):
-                return parsed.path.split("/")[2]
-
-    raise ValueError(f"Could not extract video ID from URL: {url}")
-
-
-def get_youtube_transcript(url: str, language: str = "english") -> str:
-    """
-    Fetch the transcript for a YouTube video directly (no audio download/transcription).
-
-    - english  -> prefer English captions ('en')
-    - hinglish -> prefer Hindi captions ('hi'), fall back to English
-    """
-    from youtube_transcript_api import YouTubeTranscriptApi
-
-    video_id = extract_video_id(url)
-    lang_codes = ["hi", "en"] if language.lower() == "hinglish" else ["en", "hi"]
-
-    if hasattr(YouTubeTranscriptApi, "get_transcript"):
-        transcript_list = YouTubeTranscriptApi.get_transcript(video_id, languages=lang_codes)
-        text = " ".join(segment["text"].strip() for segment in transcript_list if segment.get("text"))
-    else:
-        fetched = YouTubeTranscriptApi().fetch(video_id, languages=lang_codes)
-        text = " ".join(snippet.text.strip() for snippet in fetched if snippet.text)
-
-    return text.strip()
-
-
-# ---------------- Audio chunking (streamed via ffmpeg) ----------------
-def process_audio(source: str, chunk_length_secs: int = 60) -> list:
-    """
-    Splits `source` directly into 16kHz mono WAV chunks using ffmpeg's segment
-    muxer, streaming the whole way through.
-
-    This replaces the old two-pass pydub approach (convert_to_wav then
-    convert_to_chunks), which decoded the entire file into Python memory
-    TWICE — once for the full-length conversion, once again to reload it for
-    chunking. ffmpeg here writes chunks straight to disk without Python ever
-    holding decoded audio in RAM.
-    """
-    base_name = os.path.splitext(os.path.basename(source))[0]
-    pattern = os.path.join(DOWNLOAD_DIR, f"{base_name}_chunk_%03d.wav")
-
-    cmd = [
-        "ffmpeg", "-y", "-i", source,
-        "-ar", "16000", "-ac", "1",
-        "-f", "segment", "-segment_time", str(chunk_length_secs),
-        pattern,
-    ]
-
-    print("Splitting audio into chunks via ffmpeg...")
-    result = subprocess.run(cmd, capture_output=True, text=True)
-    if result.returncode != 0:
-        raise RuntimeError(f"ffmpeg failed: {result.stderr}")
-
-    chunks = sorted(
-        os.path.join(DOWNLOAD_DIR, f)
-        for f in os.listdir(DOWNLOAD_DIR)
-        if f.startswith(f"{base_name}_chunk_") and f.endswith(".wav")
-    )
-    if not chunks:
-        raise ValueError(f"No chunks produced for {source}")
-
-    print(f"Audio processing complete. Generated {len(chunks)} chunks.")
-    return chunks
 

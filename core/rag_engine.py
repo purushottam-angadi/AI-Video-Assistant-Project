@@ -1,16 +1,10 @@
-# 
-
 # rag_engine.py
-# from core.vector_store import get_retriever, load_vector_store
 from typing import List , TypedDict, Literal 
 from pydantic import BaseModel
 import re 
 import os
 from langchain_mistralai import ChatMistralAI
 from langchain_core.prompts import ChatPromptTemplate
-# from langchain_core.output_parsers import StrOutputParser
-# from langchain_core.runnables import RunnablePassthrough, RunnableLambda
-# from core.vector_store import get_retriever
 from langchain_core.documents import Document
 
 
@@ -171,9 +165,6 @@ def web_search_node(state: State) -> State:
     tavily = TavilySearch(max_results=2, tavily_api_key=os.getenv("TAVILY_API_KEY"),include_raw_content=False)
 
     # print("WEB SEARCH QUERY:", q)
-
-
-
 
     response = tavily.invoke({"query": q})
     # print("TAVILY RAW RESPONSE:", response)
