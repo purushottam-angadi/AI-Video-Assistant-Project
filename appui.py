@@ -5,6 +5,7 @@ import os
 import shutil
 import tempfile
 import re
+import uuid
 
 # ─────────────────────────────────────────────
 # Page config
@@ -469,6 +470,7 @@ defaults = {
     "pipeline_ran": False,
     "upload_meta": None,
     "retriever": None,
+    "user_id": str(uuid.uuid4())          
 }
 for k, v in defaults.items():
     if k not in st.session_state:
@@ -598,7 +600,7 @@ if source:
     with st.spinner("Analysing… this may take a minute for long videos"):
         try:
             from main import run_pipeline          # lazy — nothing loads until here
-            result = run_pipeline(source, language)
+            result = run_pipeline(source, language,user_id=st.session_state.user_id,)
             st.session_state.pipeline_result = result
             st.session_state.pipeline_ran    = True
             st.session_state.retriever       = result["retriever"]
@@ -736,6 +738,7 @@ if st.session_state.pipeline_ran and st.session_state.pipeline_result:
                     "question": user_q.strip(),
                     "chat_history": st.session_state.chat_history_str,
                     "retriever": st.session_state.retriever,
+                    "user_id": st.session_state.user_id, 
                 }
                 output = main_graph.invoke(state)
                 raw_answer = output.get("answer", "")
