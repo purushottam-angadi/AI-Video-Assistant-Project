@@ -19,7 +19,7 @@ def log_mem(label: str):
     print(f"[MEM] {label:<35} {rss_mb:8.1f} MB")
 
 
-def run_pipeline(source: str, language: str = "english") -> dict:
+def run_pipeline(source: str, language: str = "english",user_id: str = "default_user") -> dict:
 
     
     
@@ -60,10 +60,10 @@ def run_pipeline(source: str, language: str = "english") -> dict:
     gc.collect()
     log_mem("after gc.collect (post-extraction)")
 
-    vs = build_vector_store(transcript)
+    vs = build_vector_store(transcript, user_id=user_id)
     log_mem("after build_vector_store (embeddings)")
 
-    retriever = get_retriever(vs)
+    retriever = get_retriever(vs, user_id=user_id)
     log_mem("after get_retriever")
 
     return {
