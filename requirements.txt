@@ -25,3 +25,10 @@ requests>=2.32.0
 sarvamai
 psutil
 youtube-transcript-api>=0.6.2
+
+# Fix for previous error
+langchain-litellm>=0.1.0       # LiteLLM integration for LangChain
+
+# Pinecone support
+pinecone-client>=3.2.0         # Official Pinecone Python client
+langchain-pinecone>=0.1.0      # LangChain ↔ Pinecone integration
