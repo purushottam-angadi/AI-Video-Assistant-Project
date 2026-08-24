@@ -77,17 +77,17 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-EMBEDDING_MODEL = "mistral-embed"
-EMBEDDING_DIM = 1024
-INDEX_NAME = "meeting-transcripts"  # Pinecone calls it an "index", not a "collection"
+INDEX_NAME = "meeting-transcripts-bge-small-1"  # Pinecone calls it an "index", not a "collection"
+from langchain_huggingface import HuggingFaceEndpointEmbeddings
 
+EMBEDDING_MODEL = "BAAI/bge-small-en-v1.5"
+EMBEDDING_DIM = 384  
 
-def get_embeddings() -> MistralAIEmbeddings:
-    return MistralAIEmbeddings(
+def get_embeddings():
+    return HuggingFaceEndpointEmbeddings(
         model=EMBEDDING_MODEL,
-        mistral_api_key=os.getenv("MISTRAL_API_KEY"),
+        huggingfacehub_api_token=os.getenv("HUGGINGFACEHUB_API_TOKEN"),
     )
-
 
 def get_pinecone_client() -> Pinecone:
     return Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
@@ -123,15 +123,18 @@ def build_vector_store(transcript: str, user_id: str, index_name: str = INDEX_NA
     docs = split_transcript(transcript, user_id=user_id)
     embeddings = get_embeddings()
 
+    index = pc.Index(index_name)
+    index.delete(filter={"user_id": user_id})
+    
     vector_store = PineconeVectorStore(index_name=index_name, embedding=embeddings)
     vector_store.add_documents(documents=docs)
     return vector_store
 
 
 def get_retriever(vector_store: PineconeVectorStore, user_id: str, k: int = 4):
+    if not user_id:
+        raise ValueError("user_id is required — cannot build a retriever without tenant isolation")
     filter_dict = {"user_id": user_id}
-    
-
     return vector_store.as_retriever(
         search_type="similarity",
         search_kwargs={"k": k, "filter": filter_dict},
