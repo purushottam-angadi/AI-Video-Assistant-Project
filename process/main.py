@@ -1,7 +1,8 @@
 import psutil
 import os
 
-
+import warnings
+warnings.filterwarnings("ignore", message="Pydantic serializer warnings")
 _process = psutil.Process(os.getpid())
 
 from utils.audio_processor import process_audio, is_youtube_url, get_youtube_transcript
