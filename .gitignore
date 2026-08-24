@@ -12,3 +12,19 @@ vector_db/
 *.mkv
 *.mov
 check_imports.py
+
+
+# local auth token — contains a live login token, never commit
+.auth_token.json
+frontend/.auth_token.json
+
+# env files
+.env
+
+# python
+__pycache__/
+*.pyc
+.venv/
+
+# downloads / temp media
+downloads/
