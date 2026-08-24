@@ -13,6 +13,7 @@ SARVAM_PIECE_SECONDS = 25
 
 groq_client = Groq(api_key=GROQ_API_KEY)
 
+
 def transcribe_audio_chunk_groq(chunk_path: str) -> str:
     """Send one chunk to Groq Whisper API and return transcript."""
     with open(chunk_path, "rb") as f:
@@ -38,6 +39,7 @@ def send_to_sarvam(piece_path: str) -> str:
     return response.transcript if hasattr(response, "transcript") else ""
 
 def transcribe_audio_chunk_sarvam(chunk_path: str) -> str:
+
     """Split into ≤25s pieces and send each to Sarvam."""
     if not SARVAM_API_KEY:
         raise ValueError("SARVAM_API_KEY is not set.")
@@ -72,7 +74,9 @@ def transcribe_audio_chunk_sarvam(chunk_path: str) -> str:
     return " ".join(t for t in results if t).strip()
 
 
+
 def transcribe_audio_chunk(chunk_path: str, language: str = "english") -> str:
+
     if language.lower() == "hinglish":
         return transcribe_audio_chunk_sarvam(chunk_path)
     else:
