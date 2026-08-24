@@ -1,72 +1,5 @@
 
 
-# import os
-# from langchain_community.vectorstores.faiss import FAISS
-# from langchain_mistralai import MistralAIEmbeddings
-# from langchain_text_splitters import RecursiveCharacterTextSplitter
-# from langchain_core.documents import Document
-# from dotenv import load_dotenv
-# from langchain_vectorstore import Chroma
-
-# load_dotenv()
-
-
-# EMBEDDING_MODEL = "mistral-embed"  # 1024-dim, API-based — no local model in memory
-
-
-# def get_embeddings() -> MistralAIEmbeddings:
-#     """
-#     Returns Mistral API-based embeddings.
-#     No model weights are loaded locally — all inference happens on Mistral's servers.
-#     Requires MISTRAL_API_KEY in your .env file.
-#     """
-#     return MistralAIEmbeddings(
-#         model=EMBEDDING_MODEL,
-#         mistral_api_key=os.getenv("MISTRAL_API_KEY"),
-#     )
-
-
-# def split_transcript(transcript: str) -> list[Document]:
-#     """
-#     Splits a transcript string into overlapping chunks and wraps them as Documents.
-#     Chunk size and overlap are tuned for meeting transcripts (~spoken sentences).
-#     """
-#     splitter = RecursiveCharacterTextSplitter(
-#         chunk_size=1000,
-#         chunk_overlap=200,
-#     )
-#     chunks = splitter.split_text(transcript)
-#     return [
-#         Document(page_content=chunk, metadata={"source": "meeting"})
-#         for chunk in chunks
-#     ]
-
-# def build_vector_store(transcript: str, collection_name: str = "meeting_transcripts") -> Chroma:
-#     """
-#     Builds a Chroma vector store from a transcript, using HuggingFace API embeddings.
-#     Persists to disk at PERSIST_DIR so it survives restarts.
-#     """
-#     docs = split_transcript(transcript)
-#     embeddings = get_embeddings()
-
-#     return Chroma.from_documents(
-#         documents=docs,
-#         embedding=embeddings,
-#         collection_name=collection_name,
-#         persist_directory=PERSIST_DIR,
-#     )
-
-
-# def get_retriever(vector_store: Chroma, k: int = 4):
-#     """
-#     Returns a similarity-based retriever from the given Chroma vector store.
-#     k: number of top chunks to retrieve per query.
-#     """
-#     return vector_store.as_retriever(
-#         search_type="similarity",
-#         search_kwargs={"k": k},
-#     )
-
 import os
 from pinecone import Pinecone, ServerlessSpec
 from langchain_pinecone import PineconeVectorStore
@@ -139,3 +72,76 @@ def get_retriever(vector_store: PineconeVectorStore, user_id: str, k: int = 4):
         search_type="similarity",
         search_kwargs={"k": k, "filter": filter_dict},
     )
+
+
+
+
+
+
+
+# import os
+# from langchain_community.vectorstores.faiss import FAISS
+# from langchain_mistralai import MistralAIEmbeddings
+# from langchain_text_splitters import RecursiveCharacterTextSplitter
+# from langchain_core.documents import Document
+# from dotenv import load_dotenv
+# from langchain_vectorstore import Chroma
+
+# load_dotenv()
+
+
+# EMBEDDING_MODEL = "mistral-embed"  # 1024-dim, API-based — no local model in memory
+
+
+# def get_embeddings() -> MistralAIEmbeddings:
+#     """
+#     Returns Mistral API-based embeddings.
+#     No model weights are loaded locally — all inference happens on Mistral's servers.
+#     Requires MISTRAL_API_KEY in your .env file.
+#     """
+#     return MistralAIEmbeddings(
+#         model=EMBEDDING_MODEL,
+#         mistral_api_key=os.getenv("MISTRAL_API_KEY"),
+#     )
+
+
+# def split_transcript(transcript: str) -> list[Document]:
+#     """
+#     Splits a transcript string into overlapping chunks and wraps them as Documents.
+#     Chunk size and overlap are tuned for meeting transcripts (~spoken sentences).
+#     """
+#     splitter = RecursiveCharacterTextSplitter(
+#         chunk_size=1000,
+#         chunk_overlap=200,
+#     )
+#     chunks = splitter.split_text(transcript)
+#     return [
+#         Document(page_content=chunk, metadata={"source": "meeting"})
+#         for chunk in chunks
+#     ]
+
+# def build_vector_store(transcript: str, collection_name: str = "meeting_transcripts") -> Chroma:
+#     """
+#     Builds a Chroma vector store from a transcript, using HuggingFace API embeddings.
+#     Persists to disk at PERSIST_DIR so it survives restarts.
+#     """
+#     docs = split_transcript(transcript)
+#     embeddings = get_embeddings()
+
+#     return Chroma.from_documents(
+#         documents=docs,
+#         embedding=embeddings,
+#         collection_name=collection_name,
+#         persist_directory=PERSIST_DIR,
+#     )
+
+
+# def get_retriever(vector_store: Chroma, k: int = 4):
+#     """
+#     Returns a similarity-based retriever from the given Chroma vector store.
+#     k: number of top chunks to retrieve per query.
+#     """
+#     return vector_store.as_retriever(
+#         search_type="similarity",
+#         search_kwargs={"k": k},
+#     )
