@@ -7,7 +7,8 @@ import re
 import json
 import requests
 
-API_BASE = "http://127.0.0.1:8000"
+import os
+API_BASE = os.getenv("API_BASE", "http://127.0.0.1:8000")
 TOKEN_FILE = os.path.join(os.path.dirname(__file__), ".auth_token.json")
 CSS_FILE = os.path.join(os.path.dirname(__file__), "style.css")
 
