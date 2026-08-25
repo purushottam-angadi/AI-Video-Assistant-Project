@@ -31,7 +31,7 @@ langchain-litellm>=0.1.0
 
 
 pinecone-client>=3.2.0         
-langchain-pinecone>=0.1.0      
+langchain-pinecone>=0.0.1     
 
 fastapi
 uvicorn
