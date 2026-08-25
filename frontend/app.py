@@ -9,7 +9,6 @@ import requests
 
 import os
 API_BASE = os.getenv("API_BASE", "http://127.0.0.1:8000")
-st.sidebar.caption(f"API_BASE: {API_BASE}")   # ← add this line temporarily
 TOKEN_FILE = os.path.join(os.path.dirname(__file__), ".auth_token.json")
 CSS_FILE = os.path.join(os.path.dirname(__file__), "style.css")
 
@@ -27,6 +26,7 @@ def load_css(path: str):
 
 load_css(CSS_FILE)
 
+st.sidebar.caption(f"API_BASE: {API_BASE}")   # ← moved here, after set_page_config
 
 # ─────────────────────────────────────────────
 # Token persistence helpers
