@@ -9,6 +9,7 @@ import requests
 
 import os
 API_BASE = os.getenv("API_BASE", "http://127.0.0.1:8000")
+st.sidebar.caption(f"API_BASE: {API_BASE}")   # ← add this line temporarily
 TOKEN_FILE = os.path.join(os.path.dirname(__file__), ".auth_token.json")
 CSS_FILE = os.path.join(os.path.dirname(__file__), "style.css")
 
@@ -142,23 +143,26 @@ def show_auth_screen():
                 password = st.text_input("Password", type="password", key="login_password")
                 submitted = st.form_submit_button("Log in")
 
-            if submitted:
-                try:
+                if submitted:
+                 try:
                     resp = requests.post(
                         f"{API_BASE}/login",
                         data={"username": username, "password": password},
                         timeout=10,
                     )
                     if resp.status_code == 200:
-                        token = resp.json()["access_token"]
-                        save_token(token)
-                        st.session_state.access_token = token
-                        st.rerun()
+                        try:
+                            token = resp.json()["access_token"]
+                            save_token(token)
+                            st.session_state.access_token = token
+                            st.rerun()
+                        except (ValueError, KeyError):
+                            st.error(f"Server returned 200 but invalid JSON: {resp.text[:300]}")
                     else:
-                        st.error("Invalid username or password.")
-                except requests.exceptions.RequestException as e:
+                        st.error(f"Invalid username or password. (status {resp.status_code}: {resp.text[:200]})")
+                 except requests.exceptions.RequestException as e:
                     st.error(f"Could not reach the server: {e}")
-
+                    
         with tab_signup:
             with st.form("signup_form"):
                 new_username = st.text_input("Choose a username", key="signup_username")
