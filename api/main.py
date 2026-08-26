@@ -4,6 +4,8 @@ from api.auth import auth_router, get_current_user, init_db
 
 from core.rag_engine import main_graph
 from process.main import run_pipeline
+from fastapi import UploadFile, File, Form
+import shutil, os, tempfile
 
 app = FastAPI(title="VideoMind API")
 
@@ -39,11 +41,30 @@ def health():
     return {"status": "ok"}
 
 @app.post("/process", response_model=ProcessResponse)
-def process_videos(req: ProcessRequest, user_id: str = Depends(get_current_user)):
+def process_video(
+    language: str = Form("english"),
+    youtube_url: str = Form(""),
+    file: UploadFile = File(None),
+    user_id: str = Depends(get_current_user),
+    ):
+    if youtube_url:
+        source = youtube_url
+    elif file:
+        suffix = os.path.splitext(file.filename)[1]
+        tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
+        shutil.copyfileobj(file.file, tmp)
+        tmp.close()
+        source = tmp.name
+    else:
+        raise HTTPException(status_code=400, detail="Provide either a file or a YouTube URL")
+
     try:
-        result = run_pipeline(req.source, req.language, user_id=user_id)
+        result = run_pipeline(source, language, user_id=user_id)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"Pipeline failed: {e}")
+    finally:
+        if file and os.path.exists(source):
+            os.remove(source)
 
     RETRIEVER_STORE[user_id] = result["retriever"]
     return ProcessResponse(

@@ -273,6 +273,7 @@ if run_file:
 # ─────────────────────────────────────────────
 # Pipeline call — POST /process
 # ─────────────────────────────────────────────
+
 if source:
     if st.session_state.retriever_ready:
         st.session_state.retriever_ready = False
@@ -284,9 +285,11 @@ if source:
 
     with st.spinner("Analysing… this may take a minute for long videos"):
         try:
+            files = {"file": (uploaded.name, uploaded.getvalue())}
             resp = requests.post(
                 f"{API_BASE}/process",
-                json={"source": source, "language": language},
+                data={"language": language, "youtube_url": ""},
+                files=files,
                 headers=auth_headers(),
                 timeout=600,
             )
@@ -307,7 +310,6 @@ if source:
         finally:
             if uploaded_path and os.path.exists(uploaded_path):
                 os.remove(uploaded_path)
-
 
 # ─────────────────────────────────────────────
 # Results
