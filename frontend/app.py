@@ -1,13 +1,9 @@
 import streamlit as st
-import gc
 import os
-import shutil
-import tempfile
 import re
 import json
 import requests
 
-import os
 API_BASE = os.getenv("API_BASE", "http://127.0.0.1:8000")
 TOKEN_FILE = os.path.join(os.path.dirname(__file__), ".auth_token.json")
 CSS_FILE = os.path.join(os.path.dirname(__file__), "style.css")
@@ -26,7 +22,6 @@ def load_css(path: str):
 
 load_css(CSS_FILE)
 
-st.sidebar.caption(f"API_BASE: {API_BASE}")   # ← moved here, after set_page_config
 
 # ─────────────────────────────────────────────
 # Token persistence helpers
@@ -53,11 +48,7 @@ def clear_saved_token():
 
 def token_is_valid(token: str) -> bool:
     try:
-        resp = requests.get(
-            f"{API_BASE}/me",
-            headers={"Authorization": f"Bearer {token}"},
-            timeout=5,
-        )
+        resp = requests.get(f"{API_BASE}/me", headers={"Authorization": f"Bearer {token}"}, timeout=5)
         return resp.status_code == 200
     except requests.exceptions.RequestException:
         return False
@@ -95,6 +86,10 @@ def fmt_size(num_bytes: int) -> str:
     return f"{mb/1024:.2f} GB"
 
 
+def bullets(content: str):
+    return [l.lstrip("•-– *").strip() for l in clean_llm_text(content).split("\n") if l.strip()]
+
+
 # ─────────────────────────────────────────────
 # Session state
 # ─────────────────────────────────────────────
@@ -112,10 +107,6 @@ for k, v in defaults.items():
     if k not in st.session_state:
         st.session_state[k] = v
 
-
-# ─────────────────────────────────────────────
-# On first load: try the saved token before showing any login form
-# ─────────────────────────────────────────────
 if not st.session_state.auth_checked:
     saved_token = load_saved_token()
     if saved_token and token_is_valid(saved_token):
@@ -126,65 +117,63 @@ if not st.session_state.auth_checked:
 
 
 # ─────────────────────────────────────────────
-# Login / Signup screen — real centered card via columns
+# Login / Signup screen
 # ─────────────────────────────────────────────
 def show_auth_screen():
     left, center, right = st.columns([1, 1.1, 1])
     with center:
-        st.markdown('<div class="auth-box">', unsafe_allow_html=True)
-        st.markdown('<div class="auth-title">VideoMind</div>', unsafe_allow_html=True)
-        st.markdown('<div class="auth-subtitle">Sign in to continue, or create an account if you\'re new.</div>', unsafe_allow_html=True)
+        st.markdown('<div class="auth-title">Welcome to VideoMind</div>', unsafe_allow_html=True)
+        st.markdown(
+            '<div class="auth-subtitle">Log in to your account, or sign up to start turning your recordings into searchable, chat-ready knowledge.</div>',
+            unsafe_allow_html=True,
+        )
 
-        tab_login, tab_signup = st.tabs(["Log in", "Sign up"])
+        with st.container(border=True):
+            tab_login, tab_signup = st.tabs(["Log in", "Sign up"])
 
-        with tab_login:
-            with st.form("login_form"):
-                username = st.text_input("Username", key="login_username")
-                password = st.text_input("Password", type="password", key="login_password")
-                submitted = st.form_submit_button("Log in")
+            with tab_login:
+                with st.form("login_form"):
+                    username = st.text_input("Username", key="login_username")
+                    password = st.text_input("Password", type="password", key="login_password")
+                    submitted = st.form_submit_button("Log in")
 
                 if submitted:
-                 try:
-                    resp = requests.post(
-                        f"{API_BASE}/login",
-                        data={"username": username, "password": password},
-                        timeout=10,
-                    )
-                    if resp.status_code == 200:
-                        try:
+                    try:
+                        resp = requests.post(
+                            f"{API_BASE}/login",
+                            data={"username": username, "password": password},
+                            timeout=10,
+                        )
+                        if resp.status_code == 200:
                             token = resp.json()["access_token"]
                             save_token(token)
                             st.session_state.access_token = token
                             st.rerun()
-                        except (ValueError, KeyError):
-                            st.error(f"Server returned 200 but invalid JSON: {resp.text[:300]}")
-                    else:
-                        st.error(f"Invalid username or password. (status {resp.status_code}: {resp.text[:200]})")
-                 except requests.exceptions.RequestException as e:
-                    st.error(f"Could not reach the server: {e}")
-                    
-        with tab_signup:
-            with st.form("signup_form"):
-                new_username = st.text_input("Choose a username", key="signup_username")
-                new_password = st.text_input("Choose a password", type="password", key="signup_password")
-                submitted_signup = st.form_submit_button("Sign up")
+                        else:
+                            st.error("Invalid username or password.")
+                    except requests.exceptions.RequestException as e:
+                        st.error(f"Could not reach the server: {e}")
 
-            if submitted_signup:
-                try:
-                    resp = requests.post(
-                        f"{API_BASE}/signup",
-                        json={"username": new_username, "password": new_password},
-                        timeout=10,
-                    )
-                    if resp.status_code == 201:
-                        st.success("Account created — switch to the Log in tab.")
-                    else:
-                        detail = resp.json().get("detail", "Signup failed.")
-                        st.error(detail)
-                except requests.exceptions.RequestException as e:
-                    st.error(f"Could not reach the server: {e}")
+            with tab_signup:
+                with st.form("signup_form"):
+                    new_username = st.text_input("Choose a username", key="signup_username")
+                    new_password = st.text_input("Choose a password", type="password", key="signup_password")
+                    submitted_signup = st.form_submit_button("Create account")
 
-        st.markdown('</div>', unsafe_allow_html=True)
+                if submitted_signup:
+                    try:
+                        resp = requests.post(
+                            f"{API_BASE}/signup",
+                            json={"username": new_username, "password": new_password},
+                            timeout=10,
+                        )
+                        if resp.status_code == 201:
+                            st.success("Account created — switch to the Log in tab.")
+                        else:
+                            detail = resp.json().get("detail", "Signup failed.")
+                            st.error(detail)
+                    except requests.exceptions.RequestException as e:
+                        st.error(f"Could not reach the server: {e}")
 
 
 if not st.session_state.access_token:
@@ -210,206 +199,173 @@ st.markdown("""
     <div class="app-logo">VM</div>
     <div>
         <p class="app-title">VideoMind</p>
-        <p class="app-subtitle">Transcription, summarisation and Q&A for video and audio</p>
+        <p class="app-subtitle">Turn any recording into a transcript, a summary, and a conversation.</p>
     </div>
+</div>
+""", unsafe_allow_html=True)
+
+st.markdown("""
+<div class="hero-copy">
+Drop in a meeting recording, lecture, interview, or podcast — VideoMind transcribes it,
+pulls out a summary, action items, key decisions, and open questions, and lets you ask
+follow-up questions directly against what was said, in either English or Hinglish.
 </div>
 """, unsafe_allow_html=True)
 
 
 # ─────────────────────────────────────────────
-# Input card — File upload
+# Upload — full width, native container
 # ─────────────────────────────────────────────
-ALLOWED_EXT = ["mp4","mkv","mov","avi","webm","flv","mp3","wav","m4a","ogg","flac","aac"]
-AUDIO_EXT = {"mp3","wav","m4a","ogg","flac","aac"}
+ALLOWED_EXT = ["mp4", "mkv", "mov", "avi", "webm", "flv", "mp3", "wav", "m4a", "ogg", "flac", "aac"]
+AUDIO_EXT = {"mp3", "wav", "m4a", "ogg", "flac", "aac"}
 
-source        = ""
-uploaded_path = None
-language      = "english"
+with st.container(border=True):
+    st.markdown('<div class="section-title">Upload a recording</div>', unsafe_allow_html=True)
 
-st.markdown('<div class="card">', unsafe_allow_html=True)
-st.markdown('<div class="section-title">Upload file</div>', unsafe_allow_html=True)
-
-c1, c2, c3 = st.columns([4, 1, 1], gap="medium")
-with c1:
-    uploaded = st.file_uploader(
-        "upload", label_visibility="collapsed",
-        type=ALLOWED_EXT,
-        help="Video: MP4 MKV MOV AVI WebM FLV  ·  Audio: MP3 WAV M4A OGG FLAC AAC",
-        key="file_upload",
-    )
-    if uploaded:
-        ext = uploaded.name.rsplit(".", 1)[-1].lower()
-        kind = "Audio" if ext in AUDIO_EXT else "Video"
-        st.caption(f"{uploaded.name} · {fmt_size(uploaded.size)} · {kind} · {ext}")
-with c2:
-    language = st.selectbox("Language", ["english", "hinglish"],
-                            key="lang_file", label_visibility="collapsed")
-with c3:
-    st.markdown("<br>", unsafe_allow_html=True)
-    run_file = st.button("Analyse →", key="run_file", use_container_width=True)
-
-st.markdown('</div>', unsafe_allow_html=True)
+    c1, c2, c3 = st.columns([4, 1, 1], gap="medium")
+    with c1:
+        uploaded = st.file_uploader(
+            "upload", label_visibility="collapsed",
+            type=ALLOWED_EXT,
+            help="Video: MP4 MKV MOV AVI WebM FLV · Audio: MP3 WAV M4A OGG FLAC AAC",
+            key="file_upload",
+        )
+        if uploaded:
+            ext = uploaded.name.rsplit(".", 1)[-1].lower()
+            kind = "Audio" if ext in AUDIO_EXT else "Video"
+            st.caption(f"{uploaded.name} · {fmt_size(uploaded.size)} · {kind} · {ext}")
+    with c2:
+        language = st.selectbox("Language", ["english", "hinglish"], key="lang_file", label_visibility="collapsed")
+    with c3:
+        run_file = st.button("Analyse →", key="run_file", use_container_width=True)
 
 if run_file:
     if uploaded is None:
         st.warning("Upload a file first.")
     else:
-        suffix = "." + uploaded.name.rsplit(".", 1)[-1].lower()
-        os.makedirs("downloads", exist_ok=True)
-        tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix, dir="downloads")
-        shutil.copyfileobj(uploaded, tmp)
-        size_bytes = tmp.tell()
-        tmp.close()
-        uploaded_path = tmp.name
-        source        = uploaded_path
+        st.session_state.chat_history_str = ""
+        st.session_state.chat_display = []
+        st.session_state.pipeline_ran = False
+        st.session_state.retriever_ready = False
+
+        ext = uploaded.name.rsplit(".", 1)[-1].lower()
         st.session_state.upload_meta = {
             "name": uploaded.name,
-            "ext": suffix.lstrip(".").upper(),
-            "size": fmt_size(size_bytes),
-            "kind": "Audio" if suffix.lstrip(".").lower() in AUDIO_EXT else "Video",
+            "ext": ext.upper(),
+            "size": fmt_size(uploaded.size),
+            "kind": "Audio" if ext in AUDIO_EXT else "Video",
         }
 
+        with st.spinner("Analysing… this may take a minute for long recordings"):
+            try:
+                files = {"file": (uploaded.name, uploaded.getvalue())}
+                resp = requests.post(
+                    f"{API_BASE}/process",
+                    data={"language": language, "youtube_url": ""},
+                    files=files,
+                    headers=auth_headers(),
+                    timeout=600,
+                )
+                if resp.status_code == 401:
+                    st.error("Session expired — please log in again.")
+                    clear_saved_token()
+                    st.session_state.access_token = None
+                    st.session_state.auth_checked = False
+                    st.rerun()
+                resp.raise_for_status()
+                result = resp.json()
+
+                st.session_state.pipeline_result = result
+                st.session_state.pipeline_ran = True
+                st.session_state.retriever_ready = True
+            except requests.exceptions.RequestException as e:
+                st.error(f"Pipeline error: {e}")
+
 
 # ─────────────────────────────────────────────
-# Pipeline call — POST /process
-# ─────────────────────────────────────────────
-
-if source:
-    if st.session_state.retriever_ready:
-        st.session_state.retriever_ready = False
-        gc.collect()
-
-    st.session_state.chat_history_str = ""
-    st.session_state.chat_display     = []
-    st.session_state.pipeline_ran     = False
-
-    with st.spinner("Analysing… this may take a minute for long videos"):
-        try:
-            files = {"file": (uploaded.name, uploaded.getvalue())}
-            resp = requests.post(
-                f"{API_BASE}/process",
-                data={"language": language, "youtube_url": ""},
-                files=files,
-                headers=auth_headers(),
-                timeout=600,
-            )
-            if resp.status_code == 401:
-                st.error("Session expired — please log in again.")
-                clear_saved_token()
-                st.session_state.access_token = None
-                st.session_state.auth_checked = False
-                st.rerun()
-            resp.raise_for_status()
-            result = resp.json()
-
-            st.session_state.pipeline_result = result
-            st.session_state.pipeline_ran    = True
-            st.session_state.retriever_ready = True
-        except requests.exceptions.RequestException as e:
-            st.error(f"Pipeline error: {e}")
-        finally:
-            if uploaded_path and os.path.exists(uploaded_path):
-                os.remove(uploaded_path)
-
-# ─────────────────────────────────────────────
-# Results
+# Results — tabbed: Summary / Actions / Decisions / Questions / Chat
 # ─────────────────────────────────────────────
 if st.session_state.pipeline_ran and st.session_state.pipeline_result:
     res = st.session_state.pipeline_result
     meta = st.session_state.upload_meta or {}
 
     word_count = len(res["transcript"].split())
-    n_actions   = len([l for l in res["action_items"].split("\n") if l.strip()])
-    n_decisions = len([l for l in res["key_decisions"].split("\n") if l.strip()])
-    n_questions = len([l for l in res["open_questions"].split("\n") if l.strip()])
+    n_actions = len(bullets(res["action_items"]))
+    n_decisions = len(bullets(res["key_decisions"]))
+    n_questions = len(bullets(res["open_questions"]))
 
+    st.divider()
     st.markdown(f'<div class="section-heading">{res["title"]}</div>', unsafe_allow_html=True)
-    st.caption("Analysis complete")
 
     col_a, col_b, col_c, col_d, col_e = st.columns(5)
     col_a.metric("Source", meta.get("kind", "—"))
     col_b.metric("Format", meta.get("ext", "—"))
     col_c.metric("File size", meta.get("size", "—"))
-    col_d.metric("Transcript words", f"{word_count:,}")
-    col_e.metric("Est. spoken length", estimate_speaking_time(word_count))
+    col_d.metric("Words", f"{word_count:,}")
+    col_e.metric("Length", estimate_speaking_time(word_count))
 
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.markdown('<div class="section-title">Summary</div>', unsafe_allow_html=True)
-    st.write(clean_llm_text(res["summary"]))
-    st.markdown('</div>', unsafe_allow_html=True)
+    tab_summary, tab_actions, tab_decisions, tab_questions, tab_transcript, tab_chat = st.tabs(
+        ["Summary", f"Action Items ({n_actions})", f"Decisions ({n_decisions})",
+         f"Open Questions ({n_questions})", "Transcript", "Chat"]
+    )
 
-    col1, col2, col3 = st.columns(3, gap="medium")
+    with tab_summary:
+        st.write(clean_llm_text(res["summary"]))
 
-    def _bullets(content):
-        return [l.lstrip("•-– *").strip() for l in clean_llm_text(content).split("\n") if l.strip()]
-
-    with col1:
-        st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.markdown(f'<div class="section-title">Action items · {n_actions}</div>', unsafe_allow_html=True)
-        for item in _bullets(res["action_items"]) or ["None found"]:
+    with tab_actions:
+        items = bullets(res["action_items"])
+        for item in items or ["None found"]:
             st.markdown(f"- {item}")
-        st.markdown('</div>', unsafe_allow_html=True)
-    with col2:
-        st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.markdown(f'<div class="section-title">Key decisions · {n_decisions}</div>', unsafe_allow_html=True)
-        for item in _bullets(res["key_decisions"]) or ["None found"]:
+
+    with tab_decisions:
+        items = bullets(res["key_decisions"])
+        for item in items or ["None found"]:
             st.markdown(f"- {item}")
-        st.markdown('</div>', unsafe_allow_html=True)
-    with col3:
-        st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.markdown(f'<div class="section-title">Open questions · {n_questions}</div>', unsafe_allow_html=True)
-        for item in _bullets(res["open_questions"]) or ["None found"]:
+
+    with tab_questions:
+        items = bullets(res["open_questions"])
+        for item in items or ["None found"]:
             st.markdown(f"- {item}")
-        st.markdown('</div>', unsafe_allow_html=True)
 
-    with st.expander("Raw transcript"):
-        st.text_area("t", label_visibility="collapsed", value=res["transcript"], height=200)
+    with tab_transcript:
+        st.text_area("t", label_visibility="collapsed", value=res["transcript"], height=350)
 
-    st.divider()
+    with tab_chat:
+        for turn in st.session_state.chat_display:
+            with st.chat_message("user"):
+                st.write(turn["user"])
+            with st.chat_message("assistant"):
+                st.write(turn["bot"])
 
-    # ─────────────────────────────────────────────
-    # Chat — POST /chat
-    # ─────────────────────────────────────────────
-    st.markdown('<div class="section-heading">Chat with your video</div>', unsafe_allow_html=True)
+        user_q = st.chat_input("Ask something about this recording…")
 
-    for turn in st.session_state.chat_display:
-        with st.chat_message("user"):
-            st.write(turn["user"])
-        with st.chat_message("assistant"):
-            st.write(turn["bot"])
+        if user_q:
+            if not st.session_state.retriever_ready:
+                st.warning("Upload and analyse a recording first.")
+            else:
+                with st.spinner("Thinking…"):
+                    try:
+                        resp = requests.post(
+                            f"{API_BASE}/chat",
+                            json={"question": user_q.strip(), "chat_history": st.session_state.chat_history_str},
+                            headers=auth_headers(),
+                            timeout=120,
+                        )
+                        if resp.status_code == 401:
+                            st.error("Session expired — please log in again.")
+                            clear_saved_token()
+                            st.session_state.access_token = None
+                            st.session_state.auth_checked = False
+                            st.rerun()
+                        resp.raise_for_status()
+                        raw_answer = resp.json().get("answer", "")
+                    except requests.exceptions.RequestException as e:
+                        st.error(f"Chat error: {e}")
+                        raw_answer = ""
 
-    user_q = st.chat_input("What were the main points discussed?")
+                clean_answer = re.sub(r"^[🌐📎🎬]\s*\[.*?\]\s*\n?", "", raw_answer).strip()
+                clean_answer = clean_llm_text(clean_answer)
 
-    if user_q:
-        if not st.session_state.retriever_ready:
-            st.warning("Upload and analyse a video first.")
-        else:
-            with st.spinner("Thinking…"):
-                try:
-                    resp = requests.post(
-                        f"{API_BASE}/chat",
-                        json={
-                            "question": user_q.strip(),
-                            "chat_history": st.session_state.chat_history_str,
-                        },
-                        headers=auth_headers(),
-                        timeout=120,
-                    )
-                    if resp.status_code == 401:
-                        st.error("Session expired — please log in again.")
-                        clear_saved_token()
-                        st.session_state.access_token = None
-                        st.session_state.auth_checked = False
-                        st.rerun()
-                    resp.raise_for_status()
-                    raw_answer = resp.json().get("answer", "")
-                except requests.exceptions.RequestException as e:
-                    st.error(f"Chat error: {e}")
-                    raw_answer = ""
-
-            clean_answer = re.sub(r"^[🌐📎🎬]\s*\[.*?\]\s*\n?", "", raw_answer).strip()
-            clean_answer = clean_llm_text(clean_answer)
-
-            st.session_state.chat_history_str += f"User: {user_q}\nAssistant: {clean_answer}\n"
-            st.session_state.chat_display.append({"user": user_q, "bot": clean_answer})
-            st.rerun()
+                st.session_state.chat_history_str += f"User: {user_q}\nAssistant: {clean_answer}\n"
+                st.session_state.chat_display.append({"user": user_q, "bot": clean_answer})
+                st.rerun()

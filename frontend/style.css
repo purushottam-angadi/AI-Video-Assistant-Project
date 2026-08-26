@@ -1,142 +1,86 @@
 :root {
-    --bg:        #0A0B0E;
-    --panel:     #14151A;
-    --panel-alt: #1A1B21;
-    --border:    #24252C;
-    --border-hi: #2E313B;
-    --text:      #E7E8EA;
-    --text-dim:  #A0A3AC;
-    --text-mute: #63666F;
-    --accent:    #4C6EF5;
-    --accent-dim:#2B3A75;
+    --bg:        #000000;
+    --panel:     #0D0D10;
+    --panel-alt: #16161A;
+    --border:    #222226;
+    --border-hi: #2E2E35;
+    --text:      #F2F2F5;
+    --text-dim:  #9A9AA5;
+    --text-mute: #5C5C66;
+    --accent:    #3B6FF0;
+    --accent-hover: #2E5AD1;
+    --accent-dim: #16233F;
 }
 
-/* ── Base ── */
-.stApp {
-    background-color: var(--bg) !important;
-}
-.block-container {
-    max-width: 1040px;
-    padding-top: 2.5rem;
-    padding-bottom: 3rem;
-}
+.stApp { background-color: var(--bg) !important; }
+.block-container { max-width: 1100px; padding-top: 2rem; padding-bottom: 3rem; }
 html, body, [class*="css"] {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     color: var(--text);
 }
-p, span, label, div { color: var(--text-dim); }
-
+p, span, label { color: var(--text-dim); }
 #MainMenu, footer, header { visibility: hidden; }
 
 /* ── Header ── */
 .app-header {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    padding-bottom: 1.4rem;
-    margin-bottom: 1.6rem;
+    gap: 0.8rem;
+    padding-bottom: 1.5rem;
+    margin-bottom: 2rem;
     border-bottom: 1px solid var(--border);
 }
 .app-logo {
-    width: 38px;
-    height: 38px;
-    border-radius: 9px;
-    background: linear-gradient(135deg, #4C6EF5, #7C5CFC);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-weight: 700;
-    font-size: 0.95rem;
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    background: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-weight: 700; font-size: 1rem;
     flex-shrink: 0;
 }
-.app-title {
-    font-size: 1.35rem;
-    font-weight: 700;
-    color: var(--text) !important;
-    margin: 0;
-    line-height: 1.2;
-}
-.app-subtitle {
-    color: var(--text-mute) !important;
-    font-size: 0.85rem;
-    margin: 0.1rem 0 0;
+.app-title { font-size: 1.4rem; font-weight: 700; color: var(--text) !important; margin: 0; line-height: 1.2; }
+.app-subtitle { color: var(--text-mute) !important; font-size: 0.85rem; margin: 0.1rem 0 0; }
+
+/* ── Hero / intro copy ── */
+.hero-copy {
+    color: var(--text-dim) !important;
+    font-size: 0.95rem;
+    line-height: 1.7;
+    max-width: 700px;
+    margin-bottom: 2rem;
 }
 
-/* ── Auth card (centered, boxed) ── */
-.auth-box {
-    max-width: 400px;
-    margin: 3.5rem auto 0;
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 2rem 2rem 1.6rem;
-}
-.auth-title {
-    font-size: 1.4rem;
-    font-weight: 700;
-    text-align: center;
-    color: var(--text) !important;
-    margin-bottom: 0.35rem;
-}
-.auth-subtitle {
-    text-align: center;
-    color: var(--text-mute) !important;
-    font-size: 0.82rem;
-    margin-bottom: 1.6rem;
+/* ── Auth screen ── */
+.auth-title { font-size: 1.6rem; font-weight: 700; text-align: center; color: var(--text) !important; margin-bottom: 0.4rem; }
+.auth-subtitle { text-align: center; color: var(--text-mute) !important; font-size: 0.88rem; margin-bottom: 1.6rem; }
+
+/* ── Native Streamlit bordered containers ── */
+div[data-testid="stVerticalBlockBorderWrapper"] {
+    background: var(--panel) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 14px !important;
 }
 
-/* ── Cards (main app) ── */
-.card {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 1.4rem 1.6rem;
-    margin-bottom: 1.1rem;
-}
+/* ── Section labels ── */
 .section-title {
     font-size: 0.7rem;
     font-weight: 700;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.07em;
     text-transform: uppercase;
     color: var(--text-mute) !important;
-    margin-bottom: 0.85rem;
+    margin-bottom: 0.8rem;
 }
-.section-heading {
-    font-size: 1.05rem;
-    font-weight: 700;
-    color: var(--text) !important;
-    margin: 1.6rem 0 0.9rem;
-}
+.section-heading { font-size: 1.1rem; font-weight: 700; color: var(--text) !important; margin: 0.2rem 0 1rem; }
 
-/* ── Metric tiles ── */
+/* ── Metrics ── */
 [data-testid="stMetric"] {
     background: var(--panel);
     border: 1px solid var(--border);
     border-radius: 12px;
-    padding: 0.7rem 0.9rem;
+    padding: 0.75rem 0.9rem;
 }
-[data-testid="stMetricLabel"] {
-    font-size: 0.65rem !important;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--text-mute) !important;
-}
-[data-testid="stMetricValue"] {
-    font-size: 1.05rem !important;
-    color: var(--text) !important;
-}
-
-/* ── Tabs ── */
-.stTabs [data-baseweb="tab-list"] { gap: 1.2rem; }
-.stTabs [data-baseweb="tab"] {
-    font-weight: 600;
-    font-size: 0.88rem;
-    color: var(--text-mute) !important;
-}
-.stTabs [aria-selected="true"] {
-    color: var(--accent) !important;
-}
+[data-testid="stMetricLabel"] { font-size: 0.65rem !important; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-mute) !important; }
+[data-testid="stMetricValue"] { font-size: 1.05rem !important; color: var(--text) !important; }
 
 /* ── Buttons ── */
 .stButton > button {
@@ -150,10 +94,7 @@ p, span, label, div { color: var(--text-dim); }
     transition: background 0.15s, transform 0.1s !important;
     width: 100%;
 }
-.stButton > button:hover {
-    background: #3f5ce0 !important;
-    transform: translateY(-1px);
-}
+.stButton > button:hover { background: var(--accent-hover) !important; transform: translateY(-1px); }
 
 /* ── Inputs ── */
 .stTextInput input, .stTextArea textarea, .stSelectbox > div > div {
@@ -164,12 +105,9 @@ p, span, label, div { color: var(--text-dim); }
 }
 .stTextInput input:focus, .stTextArea textarea:focus {
     border-color: var(--accent) !important;
-    box-shadow: 0 0 0 3px rgba(76, 110, 245, 0.18) !important;
+    box-shadow: 0 0 0 3px rgba(59, 111, 240, 0.18) !important;
 }
-.stTextInput label, .stSelectbox label {
-    color: var(--text-dim) !important;
-    font-size: 0.85rem !important;
-}
+.stTextInput label, .stSelectbox label { color: var(--text-dim) !important; font-size: 0.85rem !important; }
 
 /* ── File uploader ── */
 [data-testid="stFileUploader"] {
@@ -177,29 +115,21 @@ p, span, label, div { color: var(--text-dim); }
     border-radius: 12px !important;
     background: var(--panel-alt) !important;
 }
-[data-testid="stFileUploader"]:hover {
-    border-color: var(--accent) !important;
-}
+[data-testid="stFileUploader"]:hover { border-color: var(--accent) !important; }
 [data-testid="stFileUploaderDropzoneInstructions"] span,
-[data-testid="stFileUploaderDropzoneInstructions"] small {
-    color: var(--text-mute) !important;
-}
+[data-testid="stFileUploaderDropzoneInstructions"] small { color: var(--text-mute) !important; }
 
 /* ── Sidebar ── */
-section[data-testid="stSidebar"] {
-    background: var(--panel);
-    border-right: 1px solid var(--border);
-}
-section[data-testid="stSidebar"] * {
-    color: var(--text-dim) !important;
-}
+section[data-testid="stSidebar"] { background: var(--panel); border-right: 1px solid var(--border); }
+section[data-testid="stSidebar"] * { color: var(--text-dim) !important; }
+
+/* ── Tabs ── */
+.stTabs [data-baseweb="tab-list"] { gap: 1.6rem; border-bottom: 1px solid var(--border); }
+.stTabs [data-baseweb="tab"] { font-weight: 600; font-size: 0.9rem; color: var(--text-mute) !important; padding-bottom: 0.6rem; }
+.stTabs [aria-selected="true"] { color: var(--accent) !important; border-bottom-color: var(--accent) !important; }
 
 /* ── Chat ── */
-[data-testid="stChatMessage"] {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-}
+[data-testid="stChatMessage"] { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; }
 
 /* ── Expander ── */
 .streamlit-expanderHeader {
