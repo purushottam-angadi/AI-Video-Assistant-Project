@@ -29,11 +29,11 @@ def get_llm():
 UPPER_TH = 0.7
 LOWER_TH = 0.3
 
-
 class State(TypedDict):
     question : str
     chat_history : str
     docs: List[Document]
+    intent: str   
     retriever: object  
     good_docs: List[Document]
     verdict: str
@@ -44,6 +44,59 @@ class State(TypedDict):
     web_query: str
     web_docs: List[Document]
     answer: str
+
+
+
+class Intent(BaseModel):
+    label: Literal["GENERAL", "NEEDS_CONTEXT"]
+    standalone_question: str  # resolved version, used either way
+
+def classify_intent_node(state: State) -> State:
+    classify_prompt = ChatPromptTemplate.from_messages([
+        (
+            "system",
+            "Classify the user's message given the chat history.\n\n"
+            "- NEEDS_CONTEXT: the user is asking something that requires looking at the "
+            "video transcript specifically, or requires fresh/current information from the web "
+            "(facts, data, events, specifics about the video's subject matter).\n"
+            "- GENERAL: everything else — greetings, thanks, small talk, requests to repeat/summarize "
+            "prior conversation, general knowledge questions answerable without lookup, opinions, "
+            "jokes, creative writing, translations, casual chat, or anything not tied to needing "
+            "the transcript or live web data.\n\n"
+            "Always also produce a standalone_question: resolve any pronouns or references "
+            "('this', 'that', 'what you said') using the chat history so the message makes sense "
+            "with zero prior context. If there's nothing to resolve, just repeat the message.\n"
+            "Output JSON only.",
+        ),
+        ("human", "Chat history:\n{chat_history}\n\nMessage: {question}"),
+    ])
+    chain = classify_prompt | gateway.get_llm("rewrite").with_structured_output(Intent)
+    try:
+        result = chain.invoke({"question": state["question"], "chat_history": state["chat_history"]})
+    except Exception as e:
+        print(f"[classify_intent_node] failed, defaulting to NEEDS_CONTEXT: {e}")
+        return {"intent": "NEEDS_CONTEXT", "question": state["question"]}
+
+    return {"intent": result.label, "question": result.standalone_question}
+
+
+def general_node(state: State) -> State:
+    # handles anything that doesn't need transcript/web lookup — answered
+    # normally, like any general-purpose chatbot would
+    prompt = ChatPromptTemplate.from_messages([
+        (
+            "system",
+            "You are a helpful, friendly assistant embedded in a video Q&A tool. "
+            "Answer the user's message directly and naturally — this could be a greeting, "
+            "a general knowledge question, a request to summarize/recall the conversation, "
+            "a joke, an opinion, or anything else. Use the chat history for context if relevant.",
+        ),
+        ("human", "Chat history:\n{chat_history}\n\nMessage: {question}"),
+    ])
+    chain = prompt | gateway.get_llm("generate")
+    resp = chain.invoke({"question": state["question"], "chat_history": state["chat_history"]})
+    return {"answer": resp.content}
+
 
       
 
@@ -351,9 +404,14 @@ def route_after_retrieve(state: State) -> str:
     else:
         return "eval_each_doc"
     
-
+def route_after_intent(state: State) -> str:
+    return "general" if state["intent"] == "GENERAL" else "retrieve"
+    
+g = StateGraph(State)
 g = StateGraph(State)
 
+g.add_node("classify_intent", classify_intent_node)
+g.add_node("general", general_node)
 g.add_node("retrieve", retrieve_node)
 g.add_node("eval_each_doc", doc_eval_score_node)
 g.add_node("rewrite_query", rewrite_query_node)
@@ -361,7 +419,29 @@ g.add_node("web_search", web_search_node)
 g.add_node("refine", refine_node)
 g.add_node("generate", generate_node)
 
-g.add_edge(START, "retrieve")
+g.add_edge(START, "classify_intent")
+
+
+
+g.add_conditional_edges(
+    "classify_intent",
+    route_after_intent,
+    {
+        "general": "general",
+        "retrieve": "retrieve",
+    },
+)
+
+g.add_edge("general", END)
+
+g.add_conditional_edges(
+    "retrieve",
+    route_after_retrieve,
+    {
+        "end": END,
+        "eval_each_doc": "eval_each_doc",
+    },
+)
 
 g.add_conditional_edges(
     "eval_each_doc",
@@ -371,15 +451,7 @@ g.add_conditional_edges(
         "rewrite_query": "rewrite_query",
     },
 )
-g.add_conditional_edges(
-    "retrieve",
-    route_after_retrieve,
-    {
-        "end": END,
-        "eval_each_doc": "eval_each_doc",
-        
-    },
-)
+
 g.add_edge("rewrite_query", "web_search")
 g.add_edge("web_search", "refine")
 g.add_edge("refine", "generate")

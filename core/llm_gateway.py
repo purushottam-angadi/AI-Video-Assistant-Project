@@ -21,7 +21,7 @@ MODELS = {
     "generate": "mistral/mistral-medium-latest",
     "rewrite": "mistral/mistral-small-2603",
     "refine": "mistral/mistral-small-latest",
-    "judge": "mistral/mistral-small-2603"
+    "judge": "mistral/mistral-small-2603",
     
 }
 
