@@ -12,11 +12,11 @@ if not db_url:
     raise RuntimeError("Database_URL is not set. Point it at a TEST database before running")
 
 
-# if "test" not in db_url.lower():
-#     raise RuntimeError(
-#         f"\n\n🛑 REFUSING TO RUN TESTS.\n"
-#         f"DATABASE_URL does not contain 'test': {db_url}\n"
-#     )
+if "test" not in db_url.lower():
+    raise RuntimeError(
+        f"\n\n🛑 REFUSING TO RUN TESTS.\n"
+        f"DATABASE_URL does not contain 'test': {db_url}\n"
+    )
 
 from api.main import app
 from api.auth import get_db, init_db
