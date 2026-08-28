@@ -27,7 +27,7 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     env:
-      DATABASE_URL: postgresql://testuser:testpass@localhost:5432/vidmind_test
+      DATABASE_URL: postgresql://testuser:testpass@localhost:5432/videomind_test
       JWT_SECRET_KEY: ci_test_secret_key_not_for_production
       GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
       MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
