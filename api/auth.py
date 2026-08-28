@@ -136,3 +136,4 @@ def login(form_data: OAuth2PasswordRequestForm =Depends()):
 @auth_router.get("/me")
 def read_current_user(user_id: str = Depends(get_current_user)):
     return {"user_id": user_id}
+

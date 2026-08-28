@@ -22,7 +22,6 @@ MODELS = {
     "rewrite": "mistral/mistral-small-2603",
     "refine": "mistral/mistral-small-latest",
     "judge": "mistral/mistral-small-2603",
-    
 }
 
 FALLBACK_MODEL = "groq/llama-3.3-70b-versatile" 
