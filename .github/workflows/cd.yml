@@ -1,0 +1,48 @@
+name: CI -Run Tests
+
+on:
+  push: 
+     branches: [main]
+  pull_requests:
+     branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: test_pass
+          POSTGRES_DB: videomind_test
+        
+        ports:
+         - 5432:5432
+        
+        options: >-
+          --health-cmd "pg_isready -U testuser -d videomind_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://testuser:testpass@localhost:5432/vidmind_test
+      JWT_SECRET_KEY: ci_test_secret_key_not_for_production
+
+
+    steps:
+     - name: Checkout code
+       uses: actions/checout@v4
+     - name: Set up Python
+       uses: actions/setup-python@v5
+       with:
+          python-version: '3.11'
+
+     - name: Install dependencies
+       run: |
+        pip install -r requirements.txt
+          
+     - name: Run tests
+       run: pytest tests/ -v
+ 
