@@ -3,10 +3,15 @@ import os
 import re
 import json
 import requests
+from streamlit_cookies_manager import EncryptedCookieManager
 
 API_BASE = os.getenv("API_BASE", "http://127.0.0.1:8000")
-TOKEN_FILE = os.path.join(os.path.dirname(__file__), ".auth_token.json")
+COOKIE_PASSWORD = os.getenv("COOKIE_PASSWORD", "dev-only-change-me")  # set a real secret on Render
 CSS_FILE = os.path.join(os.path.dirname(__file__), "style.css")
+
+cookies = EncryptedCookieManager(prefix="vidmind_", password=COOKIE_PASSWORD)
+if not cookies.ready():
+    st.stop()  # wait for the cookie component to load before rendering anything else
 
 # ── Update these with your real handles ──
 INSTAGRAM_URL = "https://instagram.com/puruu_angadi"
@@ -29,26 +34,21 @@ load_css(CSS_FILE)
 
 
 # ─────────────────────────────────────────────
-# Token persistence helpers
+# Token persistence helpers (browser cookie, per-visitor — not a shared server file)
 # ─────────────────────────────────────────────
 def save_token(token: str):
-    with open(TOKEN_FILE, "w") as f:
-        json.dump({"access_token": token}, f)
+    cookies["access_token"] = token
+    cookies.save()
 
 
 def load_saved_token():
-    if not os.path.exists(TOKEN_FILE):
-        return None
-    try:
-        with open(TOKEN_FILE, "r") as f:
-            return json.load(f).get("access_token")
-    except (json.JSONDecodeError, KeyError):
-        return None
+    return cookies.get("access_token")
 
 
 def clear_saved_token():
-    if os.path.exists(TOKEN_FILE):
-        os.remove(TOKEN_FILE)
+    if "access_token" in cookies:
+        del cookies["access_token"]
+        cookies.save()
 
 
 def token_is_valid(token: str) -> bool:
