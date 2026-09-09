@@ -44,6 +44,8 @@ class State(TypedDict):
     web_query: str
     web_docs: List[Document]
     answer: str
+    answer_verdict: str
+    retry_count: int
 
 
 
@@ -381,14 +383,73 @@ def generate_node(state:State)->State:
      safety_check = gateway.judge_guardrail(full_answer)
      if not safety_check.safe:
       full_answer += f"\n\n Safety check flagged this answer: {safety_check.reason}"
-    if verdict == "INCORRECT":
-        source_tag = "Web search triggered — answer from live web results\n"
-    elif verdict == "AMBIGUOUS":
-        source_tag = "Answer from transcript + web search combined\n"
-    else:
-        source_tag = "Answer from video transcript\n"
 
+    return {"answer":full_answer}
+
+class AnswerGrade(BaseModel):
+    grounded:bool
+    reason: str
+
+
+
+def grade_answer_node(state : State) -> State:
+    q=state["question"]
+    context=state["refined_context"]
+    answer=state["answer"]
+    context= state["refined_context"]
+
+    if not context.strip():
+        return {"answer_verdict":"DONE"}
+
+    grade_prompt = ChatPromptTemplate.from_messages([
+        (
+             "system",
+                "You are a strict grader for a RAG system.\n"
+                "Given a question, the context that was provided to the answering model, "
+                "and the answer it produced, decide if the answer is actually grounded in "
+                "and supported by the context (not hallucinated, not off-topic, not just refusing "
+                "without justification).\n"
+                "Output JSON only.",
+        ),
+        ("human", "Question: {question}\n\nAnswer: {answer}\n\nContext:\n{context}"),
+    ])
+
+    grade_chain = grade_prompt | gateway.get_llm("eval").with_structured_output(AnswerGrade)
+
+    retry_count=state.get("retry_count", 0)
+
+    try:
+        grade= grade_chain.invoke({"question":q,"answer":answer,"context":context})
+    except Exception as e:
+        print(f"[grade_answer_node] grading failed, accepting answer as-is: {e}")
+
+        return {"answer_verdict":"DONE"}
+
+
+    if not grade.grounded and retry_count< 2:
+        return {"answer_verdict":"RETRY","retry_count":retry_count+1, "reason": grade.reason}
+
+
+    return {"answer_verdict":"DONE","reason":grade.reason}
+
+
+def finalize_node(state: State) -> State:
+
+    full_answer = state["answer"]
+    verdict = state.get("verdict", "CORRECT")
+ 
+    if verdict == "INCORRECT":
+       source_tag = "Web search triggered — answer from live web results\n"
+    elif verdict == "AMBIGUOUS":
+      source_tag = "Answer from transcript + web search combined\n"
+    else:
+     source_tag = "Answer from video transcript\n"
+ 
     return {"answer": source_tag + full_answer}
+    
+
+    
+
 
 #routing 
 
@@ -406,8 +467,13 @@ def route_after_retrieve(state: State) -> str:
     
 def route_after_intent(state: State) -> str:
     return "general" if state["intent"] == "GENERAL" else "retrieve"
-    
-g = StateGraph(State)
+
+def route_after_grade(state:State)-> str:
+    if state.get("answer_verdict") == "RETRY":
+        return "rewrite_query"
+    else:
+        return "finalize"
+        
 g = StateGraph(State)
 
 g.add_node("classify_intent", classify_intent_node)
@@ -418,6 +484,8 @@ g.add_node("rewrite_query", rewrite_query_node)
 g.add_node("web_search", web_search_node)
 g.add_node("refine", refine_node)
 g.add_node("generate", generate_node)
+g.add_node("grade_answer", grade_answer_node)   # NEW
+g.add_node("finalize", finalize_node)      
 
 g.add_edge(START, "classify_intent")
 
@@ -452,10 +520,20 @@ g.add_conditional_edges(
     },
 )
 
+g.add_conditional_edges(
+    "grade_answer",
+    route_after_grade,
+    {
+        "rewrite_query": "rewrite_query",
+        "finalize": "finalize",
+    },
+)
+
 g.add_edge("rewrite_query", "web_search")
 g.add_edge("web_search", "refine")
 g.add_edge("refine", "generate")
-g.add_edge("generate", END)
+g.add_edge("generate", "grade_answer")
+g.add_edge("finalize", END)
 
 main_graph = g.compile()
 
