@@ -44,3 +44,4 @@ requests
 
 httpx
 pytest
+streamlit-cookies-manager
