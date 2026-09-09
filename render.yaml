@@ -5,7 +5,7 @@ services:
     runtime: docker
     plan: free               # change to starter/standard when ready for production
     dockerfilePath: ./api/Dockerfile   # relative to REPO ROOT
-    dockerContext: ./api                # build context — must contain requirements.txt
+    dockerContext: .                    # repo root — requirements.txt lives here
     healthCheckPath: /docs    # FastAPI auto-serves this; swap for a real /health route if you have one
     envVars:
       - key: MISTRAL_API_KEY
@@ -19,7 +19,7 @@ services:
     runtime: docker
     plan: free
     dockerfilePath: ./frontend/Dockerfile   # relative to REPO ROOT
-    dockerContext: ./frontend               # build context
+    dockerContext: .                         # repo root — requirements.txt lives here
     envVars:
       - key: API_BASE
         sync: false           # set manually to the backend's public URL after first deploy,
