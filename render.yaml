@@ -5,15 +5,13 @@ services:
     runtime: docker
     plan: free               # change to starter/standard when ready for production
     rootDir: backend           # build context — must still contain requirements.txt and the api/ folder
-    dockerfilePath: ./api/Dockerfile   # Dockerfile now lives inside backend/api/
+    dockerfilePath: ./api/Dockerfile   # Dockerfile lives inside backend/api/
     healthCheckPath: /docs    # FastAPI auto-serves this; swap for a real /health route if you have one
     envVars:
       - key: MISTRAL_API_KEY
         sync: false           # fill in manually in the Render dashboard after first deploy
       - key: TAVILY_API_KEY
         sync: false           # fill in manually in the Render dashboard after first deploy
-      - key: FRONTEND_URL
-        sync: false           # set this to the frontend's public URL once you know it (for CORS)
 
   # ---------------- Frontend: Streamlit (Docker) ----------------
   - type: web
@@ -23,8 +21,8 @@ services:
     rootDir: frontend
     dockerfilePath: ./Dockerfile
     envVars:
-      - key: BACKEND_URL
-        fromService:
-          type: web
-          name: backend
-          property: hostport
+      - key: API_BASE
+        sync: false           # set manually to the backend's public URL after first deploy,
+                               # e.g. https://backend-xxxx.onrender.com  (no trailing slash)
+      - key: COOKIE_PASSWORD
+        generateValue: true   # Render auto-generates a strong random secret for you
