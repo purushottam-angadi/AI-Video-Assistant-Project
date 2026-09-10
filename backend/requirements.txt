@@ -1,0 +1,47 @@
+# yt-dlp>=2025.1.1
+# cache bust july 21
+pydub>=0.25.1
+ffmpeg-python>=0.2.0
+groq
+langsmith
+
+langchain>=0.2.0
+langchain-core>=0.2.0
+langchain-community>=0.2.0
+langchain-mistralai>=0.1.0
+# langchain-chroma>=0.1.0
+langchain-huggingface
+
+langchain-text-splitters>=0.2.0
+mistralai>=0.4.0
+# chromadb>=0.5.0
+langchain-tavily
+faiss-cpu
+streamlit==1.38.0
+watchdog>=4.0.0
+python-dotenv>=1.0.0
+numpy>=1.26.0
+tqdm>=4.66.0
+requests>=2.32.0
+sarvamai
+psutil
+youtube-transcript-api>=0.6.2
+
+langchain-litellm>=0.1.0       
+
+
+pinecone-client>=3.2.0         
+langchain-pinecone>=0.0.1     
+
+fastapi
+uvicorn
+python-jose[cryptography]
+passlib[bcrypt]
+python-multipart
+bcrypt==4.0.1
+psycopg2-binary
+requests
+
+httpx
+pytest
+streamlit-cookies-manager
