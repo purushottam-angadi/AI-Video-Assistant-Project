@@ -11,7 +11,7 @@ from langchain_core.documents import Document
 from langgraph.graph import StateGraph, START, END
 from dotenv import load_dotenv
 
-from ...core import llm_gateway as gateway
+from . import llm_gateway as gateway
 from langchain_core.rate_limiters import InMemoryRateLimiter
 
 # rate_limiter = InMemoryRateLimiter(
