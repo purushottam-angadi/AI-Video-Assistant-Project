@@ -2,8 +2,8 @@
 import sys, os, json
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
-from core.rag_engine import main_graph
-from core import llm_gateway as gateway
+from backend.core.rag_engine import main_graph
+from backend.core import llm_gateway as gateway
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -88,8 +88,8 @@ result.to_pandas().to_csv("ragas_results.csv", index=False)
 import sys, os, json
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
-from core.simple_rag_engine import query as simple_query
-from core.rag_engine import main_graph, get_llm
+from backend.core.simple_rag_engine import query as simple_query
+from backend.core.rag_engine import main_graph, get_llm
 from dotenv import load_dotenv
 load_dotenv()
 

@@ -1,6 +1,6 @@
 # simple_rag_engine.py
 import os
-from core.vector_store import get_retriever, load_vector_store
+from backend.core.vector_store import get_retriever, load_vector_store
 from langchain_mistralai import ChatMistralAI
 from langchain_core.prompts import ChatPromptTemplate
 from dotenv import load_dotenv

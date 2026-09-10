@@ -1,9 +1,9 @@
 from fastapi import FastAPI , HTTPException, Depends, status
 from pydantic import BaseModel
-from api.auth import auth_router, get_current_user, init_db
+from backend.auth import auth_router, get_current_user, init_db
 
-from core.rag_engine import main_graph
-from process.main import run_pipeline
+from backend.core.rag_engine import main_graph
+from backend.process.main import run_pipeline
 from fastapi import UploadFile, File, Form
 import shutil, os, tempfile
 

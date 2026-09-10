@@ -18,8 +18,8 @@ if "test" not in db_url.lower():
         f"DATABASE_URL does not contain 'test': {db_url}\n"
     )
 
-from api.main import app
-from api.auth import get_db, init_db
+from backend.main import app
+from backend.auth import get_db, init_db
 
 
 @pytest.fixture(scope="session",autouse=True)
@@ -73,7 +73,7 @@ def second_user(client):
 
 @pytest.fixture(autouse=True)
 def clean_retriever_store():
-    from api.main import RETRIEVER_STORE
+    from backend.main import RETRIEVER_STORE
     RETRIEVER_STORE.clear()
     yield
     RETRIEVER_STORE.clear()
