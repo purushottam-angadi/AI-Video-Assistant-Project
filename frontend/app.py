@@ -9,6 +9,16 @@ API_BASE = os.getenv("API_BASE", "http://127.0.0.1:8000")
 COOKIE_PASSWORD = os.getenv("COOKIE_PASSWORD", "dev-only-change-me")  # set a real secret on Render
 CSS_FILE = os.path.join(os.path.dirname(__file__), "style.css")
 
+# set_page_config MUST be the very first Streamlit command in the script —
+# the cookie manager below also renders a Streamlit component, so it has
+# to come AFTER this, not before.
+st.set_page_config(
+    page_title="VidMind",
+    page_icon="◈",
+    layout="wide",
+    initial_sidebar_state="collapsed",
+)
+
 cookies = EncryptedCookieManager(prefix="vidmind_", password=COOKIE_PASSWORD)
 if not cookies.ready():
     st.stop()  # wait for the cookie component to load before rendering anything else
@@ -17,13 +27,6 @@ if not cookies.ready():
 INSTAGRAM_URL = "https://instagram.com/puruu_angadi"
 LINKEDIN_URL = "https://www.linkedin.com/in/puru-angadi/"
 GITHUB_URL = "https://github.com/purushottam-angadi/AI-Video-Assistant-Project"
-
-st.set_page_config(
-    page_title="VidMind",
-    page_icon="◈",
-    layout="wide",
-    initial_sidebar_state="collapsed",
-)
 
 
 def load_css(path: str):
