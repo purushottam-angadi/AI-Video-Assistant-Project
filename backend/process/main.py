@@ -5,14 +5,14 @@ import warnings
 warnings.filterwarnings("ignore", message="Pydantic serializer warnings")
 _process = psutil.Process(os.getpid())
 
-from backend.utils.audio_processor import process_audio, is_youtube_url, get_youtube_transcript
-from backend.core.transcriber import transcribe_full
+from utils.audio_processor import process_audio, is_youtube_url, get_youtube_transcript
+from core.transcriber import transcribe_full
 from dotenv import load_dotenv
 load_dotenv()
 import gc
-from backend.core.summarizer import summarize, generate_title
-from backend.core.extractor import extract_action_items, extract_key_decisions, extract_questions
-from backend.core.vector_store import build_vector_store, get_retriever
+from core.summarizer import summarize, generate_title
+from core.extractor import extract_action_items, extract_key_decisions, extract_questions
+from core.vector_store import build_vector_store, get_retriever
 
 def log_mem(label: str):
     """Print current resident memory (RSS) usage, in MB, with a label."""
@@ -115,7 +115,7 @@ if __name__ == "__main__":
             "chat_history": chat_history,
             "retriever": retriever,   
         }
-        from backend.core.rag_engine import main_graph
+        from core.rag_engine import main_graph
         answer = main_graph.invoke(state)["answer"]
 
         log_mem(f"after chat turn ({question[:20]!r})")
