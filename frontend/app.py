@@ -1,4 +1,17 @@
 import streamlit as st
+
+# set_page_config MUST be the very first Streamlit command in the script.
+# Importing streamlit_cookies_manager BEFORE this also breaks the rule —
+# that package touches Streamlit's caching internals at import time, which
+# counts as "a command already ran." So the import itself is delayed below,
+# not just the instantiation.
+st.set_page_config(
+    page_title="VidMind",
+    page_icon="◈",
+    layout="wide",
+    initial_sidebar_state="collapsed",
+)
+
 import os
 import re
 import json
@@ -8,16 +21,6 @@ from streamlit_cookies_manager import EncryptedCookieManager
 API_BASE = os.getenv("API_BASE", "http://127.0.0.1:8000")
 COOKIE_PASSWORD = os.getenv("COOKIE_PASSWORD", "dev-only-change-me")  # set a real secret on Render
 CSS_FILE = os.path.join(os.path.dirname(__file__), "style.css")
-
-# set_page_config MUST be the very first Streamlit command in the script —
-# the cookie manager below also renders a Streamlit component, so it has
-# to come AFTER this, not before.
-st.set_page_config(
-    page_title="VidMind",
-    page_icon="◈",
-    layout="wide",
-    initial_sidebar_state="collapsed",
-)
 
 cookies = EncryptedCookieManager(prefix="vidmind_", password=COOKIE_PASSWORD)
 if not cookies.ready():
