@@ -1,9 +1,3 @@
-databases:
-  - name: viddb
-    plan: free            # free Postgres — check current row/storage limits before relying on it for real users
-    databaseName: vidmind
-    user: vidmind
-
 services:
   # ---------------- Backend: FastAPI (Docker) ----------------
   - type: web
@@ -12,7 +6,7 @@ services:
     plan: free               # change to starter/standard when ready for production
     dockerfilePath: ./backend/Dockerfile   # relative to REPO ROOT
     dockerContext: ./backend                # api/ is now self-contained (core/process/utils nested inside)
-    healthCheckPath: /docs    # FastAPI auto-serves this; swap for a real /health route if you have one
+    healthCheckPath: /health   # uses the dedicated health endpoint in main.py
     envVars:
       - key: MISTRAL_API_KEY
         sync: false           # fill in manually in the Render dashboard after first deploy
@@ -21,9 +15,7 @@ services:
       - key: JWT_SECRET_KEY
         generateValue: true   # Render auto-generates a strong random secret — never redeploy-unstable
       - key: DATABASE_URL
-        fromDatabase:
-          name: viddb
-          property: connectionString
+        sync: false            # paste your Supabase connection string here after deploy
 
   # ---------------- Frontend: Streamlit (Docker) ----------------
   - type: web
