@@ -5,7 +5,7 @@ from auth import auth_router, get_current_user, init_db
 from core.rag_engine import main_graph
 from process.main import run_pipeline
 from fastapi import UploadFile, File, Form
-import shutil, os, tempfile
+import shutil, os, tempfile, traceback
 
 app = FastAPI(title="VideoMind API")
 
@@ -61,6 +61,7 @@ def process_video(
     try:
         result = run_pipeline(source, language, user_id=user_id)
     except Exception as e:
+        traceback.print_exc() 
         raise HTTPException(status_code=500, detail=f"Pipeline failed: {e}")
     finally:
         if file and os.path.exists(source):
