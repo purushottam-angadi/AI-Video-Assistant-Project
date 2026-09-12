@@ -153,14 +153,14 @@ def test_process_without_file_upload(client,existing_user):
 def test_chat_with_token_after_process_success(client,existing_user):
     headers = get_auth_header(client, existing_user)
 
-    with patch("api.main.run_pipeline", side_effect=fake_run_pipeline):
+    with patch("main.run_pipeline", side_effect=fake_run_pipeline):
         client.post(
             "/process",
             data={"language": "english", "youtube_url":"https://youtube.com/watch?v=fake"},
             headers=headers,
         )
 
-    with patch("api.main.main_graph") as mock_graph:
+    with patch("main.main_graph") as mock_graph:
         mock_graph.invoke.return_value = {"answer": "Fake answer from the graph."}
         response = client.post("/chat", json={"question": "What was discussed?"}, headers=headers)
 
@@ -174,7 +174,7 @@ def test_usera_cant_access_userb_retriever(client, existing_user,second_user):
     headers_a= get_auth_header(client, existing_user)
     headers_b= get_auth_header(client, second_user)
 
-    with patch("api.main.run_pipeline", side_effect= fake_run_pipeline):
+    with patch("main.run_pipeline", side_effect= fake_run_pipeline):
       response_a = client.post(
             "/process",
             data={"language": "english", "youtube_url": "https://youtube.com/watch?v=fake"},

@@ -1,7 +1,7 @@
 import os
 import pytest
 from fastapi.testclient import TestClient
-
+import sys
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -18,9 +18,9 @@ if "test" not in db_url.lower():
         f"DATABASE_URL does not contain 'test': {db_url}\n"
     )
 
-from backend.main import app
-from backend.auth import get_db, init_db
-
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "backend"))
+from main import app
+from auth import get_db, init_db
 
 @pytest.fixture(scope="session",autouse=True)
 
